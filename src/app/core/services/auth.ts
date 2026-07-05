@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { tap } from 'rxjs'
 import { API_BASE_URL } from '../constants/api.constants'
-import { AuthResponse, LoginRequest, RegisterRequest } from '../models/auth.models'
+import { AuthResponse, CurrentUserResponse, LoginRequest, RegisterRequest } from '../models/auth.models'
 import { TokenStorage } from './token-storage'
 
 @Injectable({
@@ -44,6 +44,15 @@ export class Auth {
     })
   }
 
+  getMe() {
+    return this.http
+      .get<CurrentUserResponse>(`${API_BASE_URL}/Auth/me`)
+      .pipe(
+        tap(user => {
+          this.tokenStorage.saveCurrentUser(user)
+        })
+      )
+  }
   logout(): void {
     const refreshToken = this.tokenStorage.getRefreshToken()
 

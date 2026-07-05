@@ -2,6 +2,7 @@ import { Routes } from '@angular/router'
 
 import { Services } from './pages/public/services/services'
 import { ServiceDetails } from './pages/public/service-details/service-details'
+import { SearchResults } from './pages/public/search-results/search-results'
 
 import { Login } from './pages/auth/login/login'
 import { Register } from './pages/auth/register/register'
@@ -16,6 +17,8 @@ import { BookingRequests } from './pages/provider/booking-requests/booking-reque
 import { ActiveJobs } from './pages/provider/active-jobs/active-jobs'
 import { Equipment } from './pages/provider/equipment/equipment'
 import { Earnings } from './pages/provider/earnings/earnings'
+import { CreateListing } from './pages/provider/create-listing/create-listing'
+import { Operators } from './pages/provider/operators/operators'
 
 import { AdminDashboard } from './pages/admin/admin-dashboard/admin-dashboard'
 import { AdminUsers } from './pages/admin/admin-users/admin-users'
@@ -47,6 +50,10 @@ export const routes: Routes = [
   {
     path: 'service-details/:id',
     component: ServiceDetails
+  },
+  {
+    path: 'search-results',
+    component: SearchResults
   },
   {
     path: 'login',
@@ -96,6 +103,21 @@ export const routes: Routes = [
   {
     path: 'equipment',
     component: Equipment,
+    canActivate: [authGuard, roleGuard(['provider'])]
+  },
+  {
+    path: 'create-listing',
+    component: CreateListing,
+    canActivate: [authGuard, roleGuard(['provider'])]
+  },
+  {
+    path: 'create-listing/:id',
+    component: CreateListing,
+    canActivate: [authGuard, roleGuard(['provider'])]
+  },
+  {
+    path: 'operators',
+    component: Operators,
     canActivate: [authGuard, roleGuard(['provider'])]
   },
   {

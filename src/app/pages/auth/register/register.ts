@@ -86,7 +86,9 @@ export class Register {
         this.isLoading = false
         this.errorMessage =
           error.error?.message ||
-          error.error ||
+          error.error?.title ||
+          (error.error?.errors ? Object.values(error.error.errors).flat().join(' - ') : null) ||
+          (typeof error.error === 'string' ? error.error : null) ||
           'حدث خطأ أثناء إنشاء الحساب'
       }
     })

@@ -12,9 +12,22 @@ export interface RegisterRequest {
   role: string;
 }
 
+export interface CurrentUserResponse {
+  id: string
+  displayName: string
+  email: string
+  phoneNumber: string
+  role: string
+  isActive: boolean
+  profileCompleted: boolean
+  trustScore?: number | null
+  dashboardUrl?: string | null
+}
+
 export interface AuthResponse {
   isAuthenticated: boolean;
   message: string;
+  displayName: string
   accessToken: string;
   refreshToken: string;
   expiresAt: string;

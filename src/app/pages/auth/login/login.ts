@@ -61,7 +61,11 @@ export class Login {
       },
       error: error => {
         this.isLoading = false
-        this.errorMessage = error.error || 'حدث خطأ أثناء تسجيل الدخول'
+        this.errorMessage =
+          error.error?.message ||
+          error.error?.title ||
+          (typeof error.error === 'string' ? error.error : null) ||
+          'حدث خطأ أثناء تسجيل الدخول'
       }
     })
   }
