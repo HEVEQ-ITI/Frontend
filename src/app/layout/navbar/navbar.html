@@ -24,9 +24,12 @@
             </button>
 
             <ng-container *ngIf="isAuth; else guestActions">
-                <button type="button" class="action-btn" title="الإشعارات">
+                <a routerLink="/notifications" class="action-btn notification-btn" title="الإشعارات">
                     🔔
-                </button>
+                    <span class="notification-badge" *ngIf="unreadNotificationsCount > 0">
+                        {{ unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount }}
+                    </span>
+                </a>
 
                 <div class="user-profile-dropdown-wrapper">
                     <button type="button" class="user-profile" aria-haspopup="true"
