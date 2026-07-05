@@ -1,0 +1,84 @@
+<div class="container">
+    <div class="services-hero animate-on-scroll">
+        <h1>منصة تأجير المعدات الثقيلة (Rentals)</h1>
+        <p>احجز معداتك الثقيلة والآليات الإنشائية فوراً مع المشغلين والشركات المعتمدة</p>
+
+        <div class="nav-search services-search">
+            <input type="text" placeholder="ابحث عن ونش، رافعة، جرافة، أو مولدات للإيجار...">
+            <span class="search-icon">🔍</span>
+        </div>
+    </div>
+
+    <section class="services-section">
+        <div class="section-header animate-on-scroll">
+            <div class="section-title">
+                <h2>استكشف فئات التأجير</h2>
+                <p>آليات الرفع، تسوية التربة، وحلول الطاقة الكهربائية</p>
+            </div>
+        </div>
+
+        <div class="categories-grid">
+            <div class="category-card animate-on-scroll">
+                <span class="category-icon">🏗️</span>
+                <span class="category-name">رافعات وأوناش</span>
+            </div>
+
+            <div class="category-card animate-on-scroll">
+                <span class="category-icon">🚜</span>
+                <span class="category-name">حفارات وجرافات</span>
+            </div>
+
+            <div class="category-card animate-on-scroll">
+                <span class="category-icon">⚡</span>
+                <span class="category-name">مولدات كهرباء</span>
+            </div>
+
+            <div class="category-card animate-on-scroll">
+                <span class="category-icon">🚚</span>
+                <span class="category-name">شاحنات نقل ثقيل</span>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="section-header animate-on-scroll">
+            <div class="section-title">
+                <h2>المعدات المتاحة للحجز والطلب الفوري</h2>
+                <p>خدمات تأجير متكاملة مدعومة بفريق المشغلين المرخصين</p>
+            </div>
+        </div>
+
+        <div class="services-grid">
+            <div class="services-card animate-on-scroll" *ngFor="let listing of listings">
+                <div class="services-img">
+                    <img [src]="listing.image" [alt]="listing.title">
+                    <span class="badge badge-info service-badge">تأجير</span>
+                </div>
+
+                <div class="services-info">
+                    <div class="services-rate">
+                        <strong>{{ listing.hourlyRate }} ريال/ساعة</strong>
+                        <span>({{ listing.dailyRate }} ريال/يومي)</span>
+                    </div>
+
+                    <h3>{{ listing.title }}</h3>
+
+                    <div class="services-meta">
+                        <span>
+                            🏗️ الموديل: {{ listing.equipmentModel }} | الحمولة/السعة:
+                            {{ listing.equipmentCapacity }}
+                        </span>
+                        <span>📍 نطاق التغطية: {{ listing.serviceZone }}</span>
+                        <span>🕒 الموثوقية: {{ listing.availabilityAr }}</span>
+                        <span>👤 المشغل: {{ listing.operatorSummary }}</span>
+                        <span>🏢 المزود: {{ listing.providerCompany }}</span>
+                    </div>
+
+                    <button type="button" class="btn btn-primary w-full" (click)="bookService(listing.id)">
+                        طلب وحجز الخدمة 🚜
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

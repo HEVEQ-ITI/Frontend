@@ -1,0 +1,30 @@
+<aside class="sidebar" *ngIf="showSidebar">
+    <ng-container [ngSwitch]="role">
+        <nav *ngSwitchCase="'customer'">
+            <a routerLink="/dashboard">لوحة التحكم</a>
+            <a routerLink="/bookings">حجوزاتي</a>
+            <a routerLink="/wallet">المحفظة</a>
+            <a routerLink="/profile">الملف الشخصي</a>
+        </nav>
+
+        <nav *ngSwitchCase="'provider'">
+            <a routerLink="/provider-dashboard">لوحة المزود</a>
+            <a routerLink="/booking-requests">طلبات الحجز</a>
+            <a routerLink="/active-jobs">الأعمال النشطة</a>
+            <a routerLink="/equipment">المعدات</a>
+            <a routerLink="/earnings">الأرباح</a>
+        </nav>
+
+        <nav *ngSwitchCase="'admin'">
+            <a routerLink="/admin">مركز القيادة</a>
+            <a routerLink="/admin-users">المستخدمين</a>
+            <a routerLink="/admin-tickets">التذاكر</a>
+        </nav>
+
+        <nav *ngSwitchCase="'employee'">
+            <a routerLink="/admin">مركز القيادة</a>
+            <a routerLink="/admin-users">المستخدمين</a>
+            <a routerLink="/admin-tickets">التذاكر</a>
+        </nav>
+    </ng-container>
+</aside>
