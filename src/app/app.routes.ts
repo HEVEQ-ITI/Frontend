@@ -5,6 +5,7 @@ import { ServiceDetails } from './pages/public/service-details/service-details'
 
 import { Login } from './pages/auth/login/login'
 import { Register } from './pages/auth/register/register'
+import { ConfirmEmail } from './pages/auth/confirm-email/confirm-email'
 
 import { Dashboard } from './pages/customer/dashboard/dashboard'
 import { Bookings } from './pages/customer/bookings/bookings'
@@ -26,6 +27,8 @@ import { roleGuard } from './core/guards/role-guard'
 import { Home } from './pages/public/home/home'
 import { Marketplace } from './pages/public/marketplace/marketplace'
 import { ProductDetails } from './pages/public/product-details/product-details'
+
+import { Notifications } from './pages/customer/notifications/notifications'
 
 export const routes: Routes = [
   {
@@ -55,6 +58,10 @@ export const routes: Routes = [
   {
     path: 'register',
     component: Register
+  },
+  {
+  path: 'auth/confirm-email',
+  component: ConfirmEmail
   },
 
   {
@@ -118,6 +125,12 @@ export const routes: Routes = [
     path: 'admin-tickets',
     component: AdminTickets,
     canActivate: [authGuard, roleGuard(['admin', 'employee'])]
+  },
+
+  {
+  path: 'notifications',
+  component: Notifications,
+  canActivate: [authGuard]
   },
 
   {

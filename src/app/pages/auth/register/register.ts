@@ -1,9 +1,8 @@
-import { Component } from '@angular/core'
 import { CommonModule } from '@angular/common'
+import { Component } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router, RouterLink } from '@angular/router'
 import { Auth } from '../../../core/services/auth'
-import { TokenStorage } from '../../../core/services/token-storage'
 
 @Component({
   selector: 'app-register',
@@ -17,6 +16,7 @@ export class Register {
   lastName = ''
   userName = ''
   email = ''
+  phoneNumber = ''
   password = ''
   selectedRole: 'Customer' | 'Provider' = 'Customer'
 
@@ -26,7 +26,6 @@ export class Register {
 
   constructor(
     private authService: Auth,
-    private tokenStorage: TokenStorage,
     private router: Router
   ) {}
 
@@ -38,8 +37,13 @@ export class Register {
     this.errorMessage = ''
     this.successMessage = ''
 
-    if (!this.firstName || !this.lastName || !this.userName || !this.email || !this.password) {
+    if (!this.firstName || !this.lastName || !this.userName || !this.email || !this.phoneNumber || !this.password) {
       this.errorMessage = 'من فضلك املأ كل البيانات المطلوبة'
+      return
+    }
+
+    if (this.phoneNumber.length !== 11) {
+      this.errorMessage = 'رقم الهاتف يجب أن يكون 11 رقم'
       return
     }
 
@@ -50,42 +54,33 @@ export class Register {
       lastName: this.lastName,
       userName: this.userName,
       email: this.email,
+      phoneNumber: this.phoneNumber,
       password: this.password,
       role: this.selectedRole
     }).subscribe({
       next: response => {
         this.isLoading = false
 
-        if (!response.isAuthenticated) {
-          this.errorMessage = response.message || 'فشل إنشاء الحساب'
+        if (response.succeeded || response.emailConfirmationSent || response.requiresEmailConfirmation) {
+          this.successMessage = response.message || 'تم إنشاء الحساب بنجاح، برجاء تأكيد البريد الإلكتروني'
+
+          this.router.navigate(['/auth/confirm-email'], {
+            queryParams: {
+              email: this.email,
+              mode: 'check-email'
+            }
+          })
+
           return
         }
 
-        this.successMessage = 'تم إنشاء الحساب بنجاح'
-
-        const role = this.tokenStorage.getRole()
-
-        if (role === 'customer') {
-          this.router.navigate(['/'])
-          return
-        }
-
-        if (role === 'provider') {
-          this.router.navigate(['/provider-dashboard'])
-          return
-        }
-
-        if (role === 'admin' || role === 'employee') {
-          this.router.navigate(['/admin'])
-          return
-        }
-
-        this.router.navigate(['/'])
+        this.errorMessage = response.message || 'فشل إنشاء الحساب'
       },
       error: error => {
         this.isLoading = false
         this.errorMessage =
           error.error?.message ||
+          error.error?.Message ||
           error.error ||
           'حدث خطأ أثناء إنشاء الحساب'
       }

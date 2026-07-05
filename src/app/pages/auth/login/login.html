@@ -26,6 +26,15 @@
                 {{ errorMessage }}
             </p>
 
+            <p class="success-message" *ngIf="infoMessage">
+                {{ infoMessage }}
+            </p>
+
+            <button *ngIf="showResendConfirmation" type="button" class="btn btn-secondary w-full" [disabled]="isLoading"
+                (click)="resendConfirmationEmail()">
+                إعادة إرسال رابط التأكيد
+            </button>
+
             <button type="submit" class="btn btn-primary w-full" [disabled]="isLoading">
                 {{ isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول' }}
             </button>
