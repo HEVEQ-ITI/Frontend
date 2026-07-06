@@ -118,6 +118,7 @@ export class Navbar implements OnInit, OnDestroy {
       '/equipment',
       '/booking-requests',
       '/earnings',
+      '/create-listing',
       '/admin',
       '/admin-users',
       '/admin-tickets'

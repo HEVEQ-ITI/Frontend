@@ -17,6 +17,7 @@ import { BookingRequests } from './pages/provider/booking-requests/booking-reque
 import { ActiveJobs } from './pages/provider/active-jobs/active-jobs'
 import { Equipment } from './pages/provider/equipment/equipment'
 import { Earnings } from './pages/provider/earnings/earnings'
+import { CreateListing } from './pages/provider/create-listing/create-listing'
 
 import { AdminDashboard } from './pages/admin/admin-dashboard/admin-dashboard'
 import { AdminUsers } from './pages/admin/admin-users/admin-users'
@@ -108,6 +109,11 @@ export const routes: Routes = [
   {
     path: 'earnings',
     component: Earnings,
+    canActivate: [authGuard, roleGuard(['provider'])]
+  },
+  {
+    path: 'create-listing',
+    component: CreateListing,
     canActivate: [authGuard, roleGuard(['provider'])]
   },
 
