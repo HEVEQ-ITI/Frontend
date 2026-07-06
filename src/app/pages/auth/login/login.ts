@@ -33,9 +33,8 @@ export class Login {
       password: this.password
     }).subscribe({
       next: response => {
-        this.isLoading = false
-
         if (!response.isAuthenticated) {
+          this.isLoading = false
           this.errorMessage = response.message || 'بيانات الدخول غير صحيحة'
           return
         }

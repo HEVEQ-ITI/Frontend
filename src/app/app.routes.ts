@@ -22,8 +22,12 @@ import { Operators } from './pages/provider/operators/operators'
 
 import { AdminDashboard } from './pages/admin/admin-dashboard/admin-dashboard'
 import { AdminUsers } from './pages/admin/admin-users/admin-users'
+import { AdminListingReview } from './pages/admin/admin-listing-review/admin-listing-review'
+import { AdminAccountVerification } from './pages/admin/admin-account-verification/admin-account-verification'
+import { AdminDocuments } from './pages/admin/admin-documents/admin-documents'
 import { AdminTickets } from './pages/admin/admin-tickets/admin-tickets'
-
+import { AdminDisputes } from './pages/admin/admin-disputes/admin-disputes'
+import { AdminFieldVerificationComponent } from './pages/admin/admin-field-verification/admin-field-verification'
 import { authGuard } from './core/guards/auth-guard'
 import { roleGuard } from './core/guards/role-guard'
 import { Home } from './pages/public/home/home'
@@ -137,13 +141,38 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard(['admin', 'employee'])]
   },
   {
-    path: 'admin-users',
+    path: 'admin/users',
     component: AdminUsers,
     canActivate: [authGuard, roleGuard(['admin', 'employee'])]
   },
   {
-    path: 'admin-tickets',
+    path: 'admin/listing-review',
+    component: AdminListingReview,
+    canActivate: [authGuard, roleGuard(['admin', 'employee'])]
+  },
+  {
+    path: 'admin/account-verifications',
+    component: AdminAccountVerification,
+    canActivate: [authGuard, roleGuard(['admin', 'employee'])]
+  },
+  {
+    path: 'admin/documents',
+    component: AdminDocuments,
+    canActivate: [authGuard, roleGuard(['admin', 'employee'])]
+  },
+  {
+    path: 'admin/tickets',
     component: AdminTickets,
+    canActivate: [authGuard, roleGuard(['admin', 'employee'])]
+  },
+  {
+    path: 'admin/disputes',
+    component: AdminDisputes,
+    canActivate: [authGuard, roleGuard(['admin', 'employee'])]
+  },
+  {
+    path: 'admin/field-verifications',
+    component: AdminFieldVerificationComponent,
     canActivate: [authGuard, roleGuard(['admin', 'employee'])]
   },
 

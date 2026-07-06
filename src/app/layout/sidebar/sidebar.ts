@@ -1,33 +1,52 @@
-import { Component, OnDestroy } from '@angular/core'
-import { Router, NavigationEnd, RouterLink } from '@angular/router'
+import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject } from '@angular/core'
+import { Router, NavigationEnd, RouterLink, RouterLinkActive } from '@angular/router'
 import { CommonModule } from '@angular/common'
-import { Subscription, filter } from 'rxjs'
+import { filter, Subscription } from 'rxjs'
 import { TokenStorage } from '../../core/services/token-storage'
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, RouterLinkActive],
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.css'
 })
-export class Sidebar implements OnDestroy {
+export class Sidebar implements OnInit, OnDestroy {
   currentUrl = ''
-  private routerSub: Subscription
+  isCollapsed = false
+  private routerSub?: Subscription
+  private elementRef = inject(ElementRef)
 
   constructor(
     private router: Router,
     private tokenStorage: TokenStorage
   ) {
     this.currentUrl = this.router.url
-    this.syncBodyClass()
+    this.isCollapsed = localStorage.getItem('sharegear_sidebar_collapsed') === 'true'
+  }
+
+  ngOnInit() {
+    this.updateBodyClass()
 
     this.routerSub = this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(event => {
         this.currentUrl = (event as NavigationEnd).urlAfterRedirects
-        this.syncBodyClass()
+        
+        // Auto-collapse sidebar on route changes for small screens
+        if (window.innerWidth <= 1024) {
+          this.isCollapsed = true
+          localStorage.setItem('sharegear_sidebar_collapsed', 'true')
+        }
+        
+        this.updateBodyClass()
       })
+  }
+
+  ngOnDestroy() {
+    this.routerSub?.unsubscribe()
+    // Clean up body class when component is destroyed
+    document.body.classList.remove('has-sidebar')
   }
 
   get role() {
@@ -56,17 +75,50 @@ export class Sidebar implements OnDestroy {
     return false
   }
 
-  // The global layout CSS (.sidebar { position: fixed }, body.has-sidebar
-  // .main-content { padding-right: var(--sidebar-width) }) depends entirely
-  // on this class being kept in sync with the visible sidebar state — nothing
-  // else in the app was doing that, which is why the fixed sidebar floated
-  // over the navbar/content with no compensation.
-  private syncBodyClass(): void {
-    document.body.classList.toggle('has-sidebar', this.showSidebar)
+  toggleCollapse() {
+    this.isCollapsed = !this.isCollapsed
+    localStorage.setItem('sharegear_sidebar_collapsed', String(this.isCollapsed))
+    this.updateBodyClass()
   }
 
-  ngOnDestroy(): void {
-    this.routerSub?.unsubscribe()
-    document.body.classList.remove('has-sidebar')
+  updateBodyClass() {
+    if (this.showSidebar && !this.isCollapsed) {
+      document.body.classList.add('has-sidebar')
+    } else {
+      document.body.classList.remove('has-sidebar')
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const targetElement = event.target as HTMLElement
+    
+    // Catch mobile menu hamburger clicks
+    const clickedMobileToggle = targetElement.closest('.mobile-menu-btn')
+    if (clickedMobileToggle) {
+      // Force expanding the sidebar when opening mobile menu
+      this.isCollapsed = false
+      localStorage.setItem('sharegear_sidebar_collapsed', 'false')
+      this.updateBodyClass()
+      return
+    }
+
+    // Only collapse on outside click if the sidebar is visible and expanded
+    if (!this.showSidebar || this.isCollapsed) {
+      return
+    }
+
+    // Check if the click target is inside the sidebar component
+    const clickedInside = this.elementRef.nativeElement.contains(event.target)
+
+    // Check if clicked target is a button that opens/toggles the sidebar
+    const clickedToggle = targetElement.closest('.sidebar-expand-trigger') || 
+                          targetElement.closest('.sidebar-collapse-btn')
+
+    if (!clickedInside && !clickedToggle) {
+      this.isCollapsed = true
+      localStorage.setItem('sharegear_sidebar_collapsed', 'true')
+      this.updateBodyClass()
+    }
   }
 }
