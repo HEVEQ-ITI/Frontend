@@ -7,13 +7,40 @@ import { CategoryDto } from '../../../core/models/Category.models'
 import { CreateMarketplaceListingRequest, MarketplaceCondition, MarketplaceTransactionMethod } from '../../../core/models/marketplace.models'
 import { CategoriesService } from '../../../core/services/categories'
 import { MarketplaceService } from '../../../core/services/marketplace'
+import { FormsModule, NgForm } from '@angular/forms'
+import { ActivatedRoute, Router, RouterLink } from '@angular/router'
+import { HttpErrorResponse } from '@angular/common/http'
+import { forkJoin } from 'rxjs'
+import { ServiceListings } from '../../../core/services/service-listings'
+import { Categories } from '../../../core/services/categories'
+import { OperatorsApi } from '../../../core/services/operators-api'
+import { Toast } from '../../../core/services/toast'
+import { extractErrorMessage } from '../../../core/models/api-error.models'
+import { Category } from '../../../core/models/category.models'
+import { Operator } from '../../../core/models/operator.models'
+import { ManageServiceListing, ServiceListingFormPayload } from '../../../core/models/service-listing.models'
+
+const EMPTY_BASIC_INFO: ServiceListingFormPayload = {
+  categoryId: 0,
+  title: '',
+  description: '',
+  tags: null,
+  equipmentModel: null,
+  equipmentCapacity: null,
+  equipmentCondition: null,
+  yearOfManufacture: null,
+  equipmentRegistrationNumber: null,
+  hourlyRate: 0,
+  dailyRate: null,
+  minimumBookingHours: 1
+}
 
 @Component({
   selector: 'app-create-listing',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './create-listing.html',
-  styleUrl: './create-listing.css',
+  styleUrl: './create-listing.css'
 })
 export class CreateListing implements OnInit {
   form: FormGroup

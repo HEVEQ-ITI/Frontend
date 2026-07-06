@@ -2,10 +2,10 @@ import { Routes } from '@angular/router'
 
 import { Services } from './pages/public/services/services'
 import { ServiceDetails } from './pages/public/service-details/service-details'
+import { SearchResults } from './pages/public/search-results/search-results'
 
 import { Login } from './pages/auth/login/login'
 import { Register } from './pages/auth/register/register'
-import { ConfirmEmail } from './pages/auth/confirm-email/confirm-email'
 
 import { Dashboard } from './pages/customer/dashboard/dashboard'
 import { Bookings } from './pages/customer/bookings/bookings'
@@ -18,6 +18,7 @@ import { ActiveJobs } from './pages/provider/active-jobs/active-jobs'
 import { Equipment } from './pages/provider/equipment/equipment'
 import { Earnings } from './pages/provider/earnings/earnings'
 import { CreateListing } from './pages/provider/create-listing/create-listing'
+import { Operators } from './pages/provider/operators/operators'
 
 import { AdminDashboard } from './pages/admin/admin-dashboard/admin-dashboard'
 import { AdminUsers } from './pages/admin/admin-users/admin-users'
@@ -28,8 +29,6 @@ import { roleGuard } from './core/guards/role-guard'
 import { Home } from './pages/public/home/home'
 import { Marketplace } from './pages/public/marketplace/marketplace'
 import { ProductDetails } from './pages/public/product-details/product-details'
-
-import { Notifications } from './pages/customer/notifications/notifications'
 
 export const routes: Routes = [
   {
@@ -53,16 +52,16 @@ export const routes: Routes = [
     component: ServiceDetails
   },
   {
+    path: 'search-results',
+    component: SearchResults
+  },
+  {
     path: 'login',
     component: Login
   },
   {
     path: 'register',
     component: Register
-  },
-  {
-  path: 'auth/confirm-email',
-  component: ConfirmEmail
   },
 
   {
@@ -107,6 +106,21 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard(['provider'])]
   },
   {
+    path: 'create-listing',
+    component: CreateListing,
+    canActivate: [authGuard, roleGuard(['provider'])]
+  },
+  {
+    path: 'create-listing/:id',
+    component: CreateListing,
+    canActivate: [authGuard, roleGuard(['provider'])]
+  },
+  {
+    path: 'operators',
+    component: Operators,
+    canActivate: [authGuard, roleGuard(['provider'])]
+  },
+  {
     path: 'earnings',
     component: Earnings,
     canActivate: [authGuard, roleGuard(['provider'])]
@@ -131,12 +145,6 @@ export const routes: Routes = [
     path: 'admin-tickets',
     component: AdminTickets,
     canActivate: [authGuard, roleGuard(['admin', 'employee'])]
-  },
-
-  {
-  path: 'notifications',
-  component: Notifications,
-  canActivate: [authGuard]
   },
 
   {

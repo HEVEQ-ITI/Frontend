@@ -1,14 +1,15 @@
-import { Component, OnInit, signal } from '@angular/core'
-import { RouterOutlet } from '@angular/router'
-import { Footer } from './layout/footer/footer'
-import { Navbar } from './layout/navbar/navbar'
-import { Sidebar } from './layout/sidebar/sidebar'
-import { Auth } from './core/services/auth'
-import { TokenStorage } from './core/services/token-storage'
+import { Component, OnInit, signal } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { Footer } from './layout/footer/footer';
+import { Navbar } from './layout/navbar/navbar';
+import { Sidebar } from './layout/sidebar/sidebar';
+import { ToastHost } from './layout/toast-host/toast-host';
+import { Auth } from './core/services/auth';
+import { TokenStorage } from './core/services/token-storage';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, Footer, Navbar, Sidebar],
+  imports: [RouterOutlet, Footer, Navbar, Sidebar, ToastHost],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

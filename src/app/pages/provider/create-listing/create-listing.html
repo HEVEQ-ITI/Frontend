@@ -109,3 +109,255 @@
     </div>
   </form>
 </main>
+<div class="container">
+    <div class="section-header">
+        <div class="section-title">
+            <h1>{{ isEditMode ? 'تعديل قائمة الخدمة' : 'إضافة قائمة خدمة جديدة' }}</h1>
+            <p *ngIf="manageData">
+                الحالة الحالية:
+                <span class="badge badge-info">{{ manageData.statusAr }}</span>
+            </p>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom: var(--s5);">
+        <p *ngIf="manageData?.adminRejectionNote" class="text-danger" style="margin-bottom: var(--s3);">
+            ⚠️ سبب الرفض من الإدارة: {{ manageData?.adminRejectionNote }}
+        </p>
+
+        <div class="flex gap-2" style="flex-wrap: wrap;">
+            <button type="button" *ngFor="let step of steps" class="btn"
+                [class.btn-secondary]="currentStep === step.id" [class.btn-outline]="currentStep !== step.id"
+                [disabled]="step.id > 1 && !listingId" (click)="goToStep(step.id)">
+                {{ step.id }}. {{ step.label }}
+            </button>
+        </div>
+    </div>
+
+    <div *ngIf="isInitialLoading" class="card">
+        <p class="text-muted">جاري التحميل...</p>
+    </div>
+
+    <!-- ===================== Step 1: Basic Info ===================== -->
+    <div class="card" *ngIf="currentStep === 1 && !isInitialLoading">
+        <form #basicInfoForm="ngForm" (ngSubmit)="saveBasicInfo(basicInfoForm)">
+            <div class="form-group">
+                <label class="form-label">الفئة</label>
+                <select class="form-input" name="categoryId" [(ngModel)]="basicInfoModel.categoryId" required>
+                    <option [ngValue]="0" disabled>اختر الفئة</option>
+                    <option *ngFor="let category of categories" [ngValue]="category.id">{{ category.name }}</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">عنوان القائمة</label>
+                <input class="form-input" name="title" [(ngModel)]="basicInfoModel.title" required maxlength="200">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">الوصف (100 حرف على الأقل)</label>
+                <textarea class="form-input" rows="4" name="description" [(ngModel)]="basicInfoModel.description"
+                    required minlength="100" #description="ngModel"></textarea>
+                <small class="text-danger" *ngIf="description.invalid && description.touched">
+                    الوصف يجب أن يكون 100 حرف على الأقل
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">الكلمات الدلالية (اختياري)</label>
+                <input class="form-input" name="tags" [(ngModel)]="basicInfoModel.tags">
+            </div>
+
+            <div class="flex gap-3">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">موديل المعدة</label>
+                    <input class="form-input" name="equipmentModel" [(ngModel)]="basicInfoModel.equipmentModel">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">السعة/الحمولة</label>
+                    <input class="form-input" name="equipmentCapacity" [(ngModel)]="basicInfoModel.equipmentCapacity">
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">سنة الصنع</label>
+                    <input class="form-input" type="number" name="yearOfManufacture" [(ngModel)]="basicInfoModel.yearOfManufacture">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">رقم تسجيل المعدة</label>
+                    <input class="form-input" name="equipmentRegistrationNumber" [(ngModel)]="basicInfoModel.equipmentRegistrationNumber">
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">السعر بالساعة (ج.م)</label>
+                    <input class="form-input" type="number" min="0" name="hourlyRate"
+                        [(ngModel)]="basicInfoModel.hourlyRate" required>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">السعر اليومي (اختياري)</label>
+                    <input class="form-input" type="number" min="0" name="dailyRate" [(ngModel)]="basicInfoModel.dailyRate">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">أقل عدد ساعات للحجز</label>
+                    <input class="form-input" type="number" min="1" name="minimumBookingHours"
+                        [(ngModel)]="basicInfoModel.minimumBookingHours" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" [disabled]="basicInfoForm.invalid || isSavingStep1">
+                {{ isSavingStep1 ? 'جاري الحفظ...' : (isEditMode ? 'حفظ التعديلات' : 'حفظ والانتقال لإضافة الصور') }}
+            </button>
+        </form>
+    </div>
+
+    <!-- ===================== Step 2: Photos ===================== -->
+    <div class="card" *ngIf="currentStep === 2 && !isInitialLoading">
+        <h3 style="margin-bottom: var(--s4);">صور القائمة (3 على الأقل، 10 كحد أقصى)</h3>
+
+        <div class="flex gap-3" style="flex-wrap: wrap; margin-bottom: var(--s5);">
+            <div class="card" *ngFor="let photo of manageData?.photos" style="width: 160px; padding: var(--s3);">
+                <img [src]="photo.photoUrl" [alt]="manageData?.title"
+                    style="width: 100%; height: 100px; object-fit: cover; border-radius: var(--radius-sm); margin-bottom: var(--s2);">
+                <button type="button" class="btn btn-outline btn-icon" (click)="deletePhoto(photo.id)">🗑️ حذف</button>
+            </div>
+        </div>
+
+        <div class="flex gap-3" style="align-items: flex-end;">
+            <div class="form-group" style="flex: 2;">
+                <label class="form-label">رابط الصورة</label>
+                <input class="form-input" name="newPhotoUrl" [(ngModel)]="newPhotoUrl" placeholder="https://...">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label class="form-label">الترتيب</label>
+                <input class="form-input" type="number" min="0" name="newPhotoOrder" [(ngModel)]="newPhotoOrder">
+            </div>
+            <button type="button" class="btn btn-primary" [disabled]="!newPhotoUrl.trim() || isAddingPhoto" (click)="addPhoto()">
+                {{ isAddingPhoto ? 'جاري الإضافة...' : '+ إضافة صورة' }}
+            </button>
+        </div>
+
+        <p class="text-muted" style="margin-top: var(--s3);">
+            ملاحظة: لا يوجد رفع ملفات مباشر حالياً — أدخل رابط صورة مستضافة مسبقاً (Blob Storage / CDN).
+        </p>
+
+        <button type="button" class="btn btn-secondary" style="margin-top: var(--s4);" (click)="goToStep(3)">
+            التالي: المشغلين
+        </button>
+    </div>
+
+    <!-- ===================== Step 3: Operators ===================== -->
+    <div class="card" *ngIf="currentStep === 3 && !isInitialLoading">
+        <h3 style="margin-bottom: var(--s4);">المشغلين المرتبطين بهذه القائمة (واحد على الأقل)</h3>
+
+        <div class="flex gap-3" style="flex-direction: column; margin-bottom: var(--s5);">
+            <div class="card flex items-center justify-between" *ngFor="let op of manageData?.operators" style="padding: var(--s3);">
+                <div>
+                    <strong>{{ op.fullName }}</strong>
+                    <span class="text-muted"> — {{ op.yearsOfExperience }} سنوات خبرة</span>
+                    <span class="text-muted" *ngIf="op.specialization"> — {{ op.specialization }}</span>
+                </div>
+                <button type="button" class="btn btn-outline btn-icon" (click)="unlinkOperator(op.operatorId)">إلغاء الربط</button>
+            </div>
+
+            <p class="text-muted" *ngIf="manageData?.operators?.length === 0">لا يوجد مشغلين مرتبطين بعد.</p>
+        </div>
+
+        <div class="flex gap-3" style="align-items: flex-end;">
+            <div class="form-group" style="flex: 1;">
+                <label class="form-label">اختر مشغل من قائمتك</label>
+                <select class="form-input" name="selectedOperatorId" [(ngModel)]="selectedOperatorId">
+                    <option value="" disabled>اختر مشغل</option>
+                    <option *ngFor="let op of availableOperators" [value]="op.id">{{ op.fullName }}</option>
+                </select>
+            </div>
+            <button type="button" class="btn btn-primary" [disabled]="!selectedOperatorId || isLinkingOperator" (click)="linkOperator()">
+                {{ isLinkingOperator ? 'جاري الربط...' : '+ ربط المشغل' }}
+            </button>
+        </div>
+
+        <p class="text-muted" style="margin-top: var(--s3);" *ngIf="availableOperators.length === 0">
+            لا يوجد مشغلين نشطين في قائمتك — أضفهم أولاً من صفحة <a routerLink="/operators">المشغلين</a>.
+        </p>
+
+        <button type="button" class="btn btn-secondary" style="margin-top: var(--s4);" (click)="goToStep(4)">
+            التالي: التوفر
+        </button>
+    </div>
+
+    <!-- ===================== Step 4: Availability ===================== -->
+    <div class="card" *ngIf="currentStep === 4 && !isInitialLoading">
+        <h3 style="margin-bottom: var(--s4);">أوقات التوفر الأسبوعية (موعد واحد على الأقل)</h3>
+
+        <div class="table-container" style="margin-bottom: var(--s5);" *ngIf="(manageData?.availability?.length ?? 0) > 0">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>اليوم</th>
+                        <th>من</th>
+                        <th>إلى</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let slot of manageData?.availability">
+                        <td>{{ dayNames[slot.dayOfWeek] }}</td>
+                        <td>{{ slot.openTime }}</td>
+                        <td>{{ slot.closeTime }}</td>
+                        <td>
+                            <button type="button" class="btn btn-outline btn-icon" (click)="deleteAvailability(slot.id)">🗑️</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex gap-3" style="align-items: flex-end;">
+            <div class="form-group">
+                <label class="form-label">اليوم</label>
+                <select class="form-input" name="dayOfWeek" [(ngModel)]="availabilityModel.dayOfWeek">
+                    <option *ngFor="let day of dayNames; let i = index" [ngValue]="i">{{ day }}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">من</label>
+                <input class="form-input" type="time" name="openTime" [(ngModel)]="availabilityModel.openTime">
+            </div>
+            <div class="form-group">
+                <label class="form-label">إلى</label>
+                <input class="form-input" type="time" name="closeTime" [(ngModel)]="availabilityModel.closeTime">
+            </div>
+            <button type="button" class="btn btn-primary" [disabled]="isAddingAvailability" (click)="addAvailability()">
+                {{ isAddingAvailability ? 'جاري الإضافة...' : '+ إضافة موعد' }}
+            </button>
+        </div>
+
+        <button type="button" class="btn btn-secondary" style="margin-top: var(--s4);" (click)="goToStep(5)">
+            التالي: المراجعة والإرسال
+        </button>
+    </div>
+
+    <!-- ===================== Step 5: Review & Submit ===================== -->
+    <div class="card" *ngIf="currentStep === 5 && !isInitialLoading">
+        <h3 style="margin-bottom: var(--s4);">المراجعة النهائية</h3>
+
+        <div *ngIf="manageData?.missingRequirements?.length" class="card" style="background: var(--color-danger-light, #fdecea); margin-bottom: var(--s4);">
+            <strong class="text-danger">المتطلبات الناقصة قبل الإرسال للمراجعة:</strong>
+            <ul style="margin-top: var(--s2);">
+                <li *ngFor="let req of manageData?.missingRequirements">{{ req }}</li>
+            </ul>
+        </div>
+
+        <p *ngIf="manageData?.canSubmitForReview" class="badge badge-success" style="margin-bottom: var(--s4);">
+            ✅ القائمة جاهزة للإرسال للمراجعة
+        </p>
+
+        <button type="button" class="btn btn-primary" [disabled]="!manageData?.canSubmitForReview" (click)="submitForReview()">
+            إرسال للمراجعة
+        </button>
+    </div>
+</div>
+
+

@@ -227,26 +227,3 @@
     font-size: 1.25rem;
   }
 }
-
-.notification-btn {
-  position: relative;
-  text-decoration: none;
-}
-
-.notification-badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: #dc2626;
-  color: white;
-  font-size: 0.65rem;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}

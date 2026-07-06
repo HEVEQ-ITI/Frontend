@@ -1,39 +1,15 @@
 export interface LoginRequest {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
 export interface RegisterRequest {
-  firstName: string
-  lastName: string
-  userName: string
-  email: string
-  phoneNumber: string
-  password: string
-  role: 'Customer' | 'Provider'
-}
-
-export interface AuthResponse {
-  succeeded: boolean
-  profileCompleted: boolean
-  displayName: string
-  isAuthenticated: boolean
-  isEmailConfirmed: boolean
-  requiresEmailConfirmation: boolean
-  emailConfirmationSent: boolean
-  message: string
-  accessToken: string
-  refreshToken: string
-  expiresAt: string
-  userId: string
-  userName: string
-  email: string
-  roles: string[]
-}
-
-export interface RefreshTokenResponse {
-  accessToken: string
-  refreshToken: string
+  firstName: string;
+  lastName: string;
+  userName: string;
+  email: string;
+  password: string;
+  role: string;
 }
 
 export interface CurrentUserResponse {
@@ -48,13 +24,17 @@ export interface CurrentUserResponse {
   dashboardUrl?: string | null
 }
 
-export interface ConfirmEmailRequest {
-  userId: string
-  token: string
+export interface AuthResponse {
+  isAuthenticated: boolean;
+  message: string;
+  displayName: string
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: string;
+  userId: string;
+  userName: string;
+  email: string;
+  roles: string[];
 }
 
-export interface ResendConfirmationEmailRequest {
-  email: string
-}
-
-export type UserRole = 'customer' | 'provider' | 'admin' | 'employee'
+export type UserRole = 'customer' | 'provider' | 'admin' | 'employee';
