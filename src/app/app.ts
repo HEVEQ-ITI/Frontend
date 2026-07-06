@@ -9,6 +9,8 @@ import { ToastComponent } from './shared/components/toast/toast.component'
 
 @Component({
   selector: 'app-root',
+  standalone: true,
+  imports: [RouterOutlet, Footer, Navbar, Sidebar],
   imports: [RouterOutlet, Footer, Navbar, Sidebar, ToastComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'

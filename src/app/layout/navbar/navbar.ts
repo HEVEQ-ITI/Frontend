@@ -75,6 +75,7 @@ export class Navbar implements OnInit, OnDestroy {
       '/wallet',
       '/messages',
       '/profile',
+      '/saved-addresses',
       '/settings',
       '/provider-dashboard',
       '/active-jobs',
@@ -84,7 +85,8 @@ export class Navbar implements OnInit, OnDestroy {
       '/create-listing',
       '/admin',
       '/admin-users',
-      '/admin-tickets'
+      '/admin-tickets',
+      '/support-tickets'
     ]
 
     return internalRoutes.some(route => this.currentUrl.startsWith(route))
