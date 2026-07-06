@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common'
 import { Component, OnInit } from '@angular/core'
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { Router } from '@angular/router'
+import { finalize } from 'rxjs'
+import { CategoryDto } from '../../../core/models/Category.models'
+import { CreateMarketplaceListingRequest, MarketplaceCondition, MarketplaceTransactionMethod } from '../../../core/models/marketplace.models'
+import { CategoriesService } from '../../../core/services/categories'
+import { MarketplaceService } from '../../../core/services/marketplace'
 import { FormsModule, NgForm } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { HttpErrorResponse } from '@angular/common/http'
@@ -31,290 +38,104 @@ const EMPTY_BASIC_INFO: ServiceListingFormPayload = {
 @Component({
   selector: 'app-create-listing',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './create-listing.html',
   styleUrl: './create-listing.css'
 })
 export class CreateListing implements OnInit {
-  listingId: string | null = null
-  isEditMode = false
-
-  manageData: ManageServiceListing | null = null
-  currentStep = 1
-
-  // Only true for the very first data fetch when landing on an edit-mode
-  // route. Never re-set to true again afterwards — mutations (add photo,
-  // link operator, add availability, etc.) refresh manageData silently in
-  // the background instead, so the wizard no longer blanks back to a bare
-  // "Loading..." screen after every single action.
-  isInitialLoading = false
-
-  isSavingStep1 = false
-
-  categories: Category[] = []
-  availableOperators: Operator[] = []
-
-  basicInfoModel: ServiceListingFormPayload = { ...EMPTY_BASIC_INFO }
-
-  newPhotoUrl = ''
-  newPhotoOrder = 0
-  isAddingPhoto = false
-
-  selectedOperatorId = ''
-  isLinkingOperator = false
-
-  availabilityModel = { dayOfWeek: 0, openTime: '08:00', closeTime: '17:00' }
-  isAddingAvailability = false
-
-  readonly dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
-
-  readonly steps = [
-    { id: 1, label: 'المعلومات الأساسية' },
-    { id: 2, label: 'الصور' },
-    { id: 3, label: 'المشغلين' },
-    { id: 4, label: 'التوفر' },
-    { id: 5, label: 'المراجعة والإرسال' }
-  ]
+  form: FormGroup
+  categories: CategoryDto[] = []
+  isSubmitting = false
+  submitMessage = ''
+  submitError = ''
 
   constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private serviceListings: ServiceListings,
-    private categoriesApi: Categories,
-    private operatorsApi: OperatorsApi,
-    private toast: Toast
-  ) {}
+    private fb: FormBuilder,
+    private categoriesService: CategoriesService,
+    private marketplaceService: MarketplaceService,
+    public router: Router
+  ) {
+    this.form = this.fb.group({
+      title: ['', [Validators.required, Validators.maxLength(150)]],
+      categoryId: [null, [Validators.required]],
+      condition: ['New', Validators.required],
+      yearOfManufacture: [new Date().getFullYear(), [Validators.required, Validators.min(1900)]],
+      description: ['', [Validators.required, Validators.maxLength(2000)]],
+      specifications: [''],
+      price: [null, [Validators.required, Validators.min(0)]],
+      isNegotiable: [false],
+      transactionMethod: ['Pickup', Validators.required],
+      governorate: ['', Validators.required],
+      district: ['', Validators.required],
+    })
+  }
 
   ngOnInit(): void {
-    this.categoriesApi.getAll('Service').subscribe({
-      next: categories => (this.categories = categories),
-      error: (err: HttpErrorResponse) => this.toast.error(extractErrorMessage(err))
-    })
-
-    this.operatorsApi.getMine().subscribe({
-      next: operators => (this.availableOperators = operators.filter(o => o.isActive)),
-      error: (err: HttpErrorResponse) => this.toast.error(extractErrorMessage(err))
-    })
-
-    const idParam = this.route.snapshot.paramMap.get('id')
-    if (idParam) {
-      this.listingId = idParam
-      this.isEditMode = true
-      this.loadInitialEditData(idParam)
-    }
+    this.loadCategories()
   }
 
-  // Runs exactly once, when an edit-mode route is first opened. Combines the
-  // two endpoints that together cover the full form:
-  //  - getById()   -> ServiceListingDetailDto: has HourlyRate/DailyRate/
-  //                   EquipmentModel/etc. (confirmed against
-  //                   GetServiceListingByIdQueryHandler.cs)
-  //  - getManage()  -> ManageServiceListingDto: has Status/Photos/Operators/
-  //                   Availability/BlackoutDates/CanSubmitForReview
-  // Neither endpoint alone has everything the wizard needs.
-  private loadInitialEditData(id: string): void {
-    this.isInitialLoading = true
+  loadCategories(): void {
+    this.categoriesService.getCategories('Marketplace').subscribe({
+      next: (categories) => {
+        this.categories = categories
 
-    forkJoin({
-      detail: this.serviceListings.getById(id),
-      manage: this.serviceListings.getManage(id)
-    }).subscribe({
-      next: ({ detail, manage }) => {
-        this.basicInfoModel = {
-          categoryId: detail.categoryId,
-          title: detail.title,
-          description: detail.description,
-          tags: detail.tags,
-          equipmentModel: detail.equipmentModel,
-          equipmentCapacity: detail.equipmentCapacity,
-          equipmentCondition: detail.equipmentCondition,
-          yearOfManufacture: detail.yearOfManufacture,
-          equipmentRegistrationNumber: detail.equipmentRegistrationNumber,
-          hourlyRate: detail.hourlyRate,
-          dailyRate: detail.dailyRate,
-          minimumBookingHours: detail.minimumBookingHours
+        if (categories.length > 0) {
+          this.form.patchValue({ categoryId: categories[0].id })
         }
-        this.manageData = manage
-        this.isInitialLoading = false
       },
-      error: (err: HttpErrorResponse) => {
-        this.isInitialLoading = false
-        this.toast.error(extractErrorMessage(err))
-      }
+      error: () => {
+        this.submitError = 'تعذر تحميل الفئات حالياً.'
+      },
     })
   }
 
-  // Called after every photo/operator/availability mutation. Deliberately
-  // does NOT touch isInitialLoading and does NOT gate any step panel — it
-  // just swaps manageData in place once the response arrives, so the current
-  // step stays visible the whole time instead of flashing to a loading screen.
-  private refreshManageData(): void {
-    if (!this.listingId) return
-
-    this.serviceListings.getManage(this.listingId).subscribe({
-      next: data => (this.manageData = data),
-      error: (err: HttpErrorResponse) => this.toast.error(extractErrorMessage(err))
-    })
-  }
-
-  goToStep(step: number): void {
-    if (step > 1 && !this.listingId) {
-      this.toast.error('احفظ المعلومات الأساسية أولاً')
+  onSubmit(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched()
+      this.submitError = 'يرجى تعبئة جميع الحقول المطلوبة.'
       return
     }
-    this.currentStep = step
-  }
 
-  // ---------- Step 1: Basic Info ----------
-
-  saveBasicInfo(form: NgForm): void {
-    if (form.invalid) return
-
-    this.isSavingStep1 = true
-
-    if (this.listingId) {
-      this.serviceListings.update(this.listingId, this.basicInfoModel).subscribe({
-        next: () => {
-          this.isSavingStep1 = false
-          this.toast.success('تم تحديث المعلومات الأساسية')
-          this.refreshManageData()
-        },
-        error: (err: HttpErrorResponse) => {
-          this.isSavingStep1 = false
-          this.toast.error(extractErrorMessage(err))
-        }
-      })
-    } else {
-      this.serviceListings.create(this.basicInfoModel).subscribe({
-        next: result => {
-          this.isSavingStep1 = false
-          this.listingId = result.id
-          this.toast.success(result.message)
-          this.refreshManageData()
-          this.currentStep = 2 // matches the backend's nextStep: "AddPhotos"
-        },
-        error: (err: HttpErrorResponse) => {
-          this.isSavingStep1 = false
-          this.toast.error(extractErrorMessage(err))
-        }
-      })
+    const payload: CreateMarketplaceListingRequest = {
+      categoryId: Number(this.form.value.categoryId),
+      title: this.form.value.title.trim(),
+      condition: this.form.value.condition as MarketplaceCondition,
+      yearOfManufacture: Number(this.form.value.yearOfManufacture),
+      description: this.form.value.description.trim(),
+      specifications: this.form.value.specifications?.trim() || '',
+      price: Number(this.form.value.price),
+      isNegotiable: Boolean(this.form.value.isNegotiable),
+      transactionMethod: this.form.value.transactionMethod as MarketplaceTransactionMethod,
+      governorate: this.form.value.governorate.trim(),
+      district: this.form.value.district.trim(),
     }
-  }
 
-  // ---------- Step 2: Photos ----------
+    this.isSubmitting = true
+    this.submitMessage = ''
+    this.submitError = ''
 
-  addPhoto(): void {
-    if (!this.listingId || !this.newPhotoUrl.trim()) return
-
-    this.isAddingPhoto = true
-
-    this.serviceListings
-      .addPhoto(this.listingId, { photoUrl: this.newPhotoUrl.trim(), displayOrder: this.newPhotoOrder })
+    this.marketplaceService
+      .createListing(payload)
+      .pipe(finalize(() => (this.isSubmitting = false)))
       .subscribe({
-        next: () => {
-          this.isAddingPhoto = false
-          this.newPhotoUrl = ''
-          this.newPhotoOrder = (this.manageData?.photos.length ?? 0) + 1
-          this.toast.success('تمت إضافة الصورة')
-          this.refreshManageData()
+        next: (response) => {
+          this.submitMessage = `تم حفظ العرض بنجاح. الحالة: ${response.statusAr || response.status}. الخطوة التالية: ${response.nextStep || 'إضافة صور'}`
+          this.form.reset({
+            condition: 'New',
+            yearOfManufacture: new Date().getFullYear(),
+            isNegotiable: false,
+            transactionMethod: 'Pickup',
+          })
+
+          if (this.categories.length > 0) {
+            this.form.patchValue({ categoryId: this.categories[0].id })
+          }
+
+          setTimeout(() => this.router.navigate(['/provider-dashboard']), 1200)
         },
-        error: (err: HttpErrorResponse) => {
-          this.isAddingPhoto = false
-          this.toast.error(extractErrorMessage(err))
-        }
+        error: () => {
+          this.submitError = 'تعذر نشر العرض. يرجى التحقق من البيانات والمحاولة مرة أخرى.'
+        },
       })
-  }
-
-  deletePhoto(photoId: string): void {
-    if (!this.listingId) return
-
-    this.serviceListings.deletePhoto(this.listingId, photoId).subscribe({
-      next: () => {
-        this.toast.success('تم حذف الصورة')
-        this.refreshManageData()
-      },
-      error: (err: HttpErrorResponse) => this.toast.error(extractErrorMessage(err))
-    })
-  }
-
-  // ---------- Step 3: Operators ----------
-
-  linkOperator(): void {
-    if (!this.listingId || !this.selectedOperatorId) return
-
-    this.isLinkingOperator = true
-
-    // Body is a bare Guid string on the wire (not { operatorId }) — matches
-    // ServiceListingsController.LinkOperator(Guid id, [FromBody] Guid operatorId).
-    this.serviceListings.linkOperator(this.listingId, this.selectedOperatorId).subscribe({
-      next: result => {
-        this.isLinkingOperator = false
-        this.selectedOperatorId = ''
-        this.toast.success(result.message)
-        this.refreshManageData()
-      },
-      error: (err: HttpErrorResponse) => {
-        this.isLinkingOperator = false
-        this.toast.error(extractErrorMessage(err))
-      }
-    })
-  }
-
-  unlinkOperator(operatorId: string): void {
-    if (!this.listingId) return
-
-    this.serviceListings.unlinkOperator(this.listingId, operatorId).subscribe({
-      next: () => {
-        this.toast.success('تم إلغاء ربط المشغل')
-        this.refreshManageData()
-      },
-      error: (err: HttpErrorResponse) => this.toast.error(extractErrorMessage(err))
-    })
-  }
-
-  // ---------- Step 4: Availability ----------
-
-  addAvailability(): void {
-    if (!this.listingId) return
-
-    this.isAddingAvailability = true
-
-    this.serviceListings.addAvailability(this.listingId, this.availabilityModel).subscribe({
-      next: () => {
-        this.isAddingAvailability = false
-        this.toast.success('تمت إضافة الموعد')
-        this.refreshManageData()
-      },
-      error: (err: HttpErrorResponse) => {
-        this.isAddingAvailability = false
-        this.toast.error(extractErrorMessage(err))
-      }
-    })
-  }
-
-  deleteAvailability(availabilityId: string): void {
-    if (!this.listingId) return
-
-    this.serviceListings.deleteAvailability(this.listingId, availabilityId).subscribe({
-      next: () => {
-        this.toast.success('تم حذف الموعد')
-        this.refreshManageData()
-      },
-      error: (err: HttpErrorResponse) => this.toast.error(extractErrorMessage(err))
-    })
-  }
-
-  // ---------- Step 5: Review & Submit ----------
-
-  submitForReview(): void {
-    if (!this.listingId) return
-
-    this.serviceListings.submitForReview(this.listingId).subscribe({
-      next: result => {
-        this.toast.success(result.message)
-        this.router.navigate(['/equipment'])
-      },
-      error: (err: HttpErrorResponse) => this.toast.error(extractErrorMessage(err))
-    })
   }
 }

@@ -1,19 +1,22 @@
-import { HttpClient } from '@angular/common/http'
+import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { API_BASE_URL } from '../constants/api.constants'
-import { Category, CategoryType } from '../models/category.models'
+import { CategoryDto, CategoryType } from '../models/Category.models'
 
 @Injectable({
   providedIn: 'root'
 })
-export class Categories {
+export class CategoriesService {
   constructor(private http: HttpClient) {}
 
-  getAll(type?: CategoryType) {
-    const url = type
-      ? `${API_BASE_URL}/categories?type=${type}`
-      : `${API_BASE_URL}/categories`
+  // GET /api/categories?type=Marketplace|Service (public)
+  getCategories(type?: CategoryType) {
+    let params = new HttpParams()
 
-    return this.http.get<Category[]>(url)
+    if (type) {
+      params = params.set('type', type)
+    }
+
+    return this.http.get<CategoryDto[]>(`${API_BASE_URL}/categories`, { params })
   }
 }
