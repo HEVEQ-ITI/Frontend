@@ -1,1 +1,142 @@
-<p>admin-tickets works!</p>
+<div class="admin-page">
+  <div class="admin-header">
+    <h1 class="page-title">الدعم الفني</h1>
+    <p class="page-subtitle">إدارة تذاكر الدعم والردود على المستخدمين</p>
+  </div>
+
+  <div class="filters-panel">
+    <div class="filter-group">
+      <label class="filter-label">الحالة</label>
+      <select class="form-control" [(ngModel)]="filterStatus" (change)="onFilterChange()">
+        <option value="">الكل</option>
+        <option value="Open">مفتوحة</option>
+        <option value="InProgress">قيد المعالجة</option>
+        <option value="Resolved">تم الحل</option>
+        <option value="Closed">مغلقة</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label class="filter-label">الأولوية</label>
+      <select class="form-control" [(ngModel)]="filterPriority" (change)="onFilterChange()">
+        <option value="">الكل</option>
+        <option value="Low">منخفضة</option>
+        <option value="Medium">متوسطة</option>
+        <option value="High">عالية</option>
+        <option value="Urgent">عاجلة</option>
+      </select>
+    </div>
+  </div>
+
+  <app-loading *ngIf="isLoading" [fullScreen]="false"></app-loading>
+
+  <div class="split-layout" *ngIf="!isLoading">
+    <!-- List Column -->
+    <div class="list-column" [class.hidden-mobile]="selectedTicket">
+      <app-empty-state *ngIf="tickets.length === 0" 
+        title="لا توجد تذاكر" 
+        message="لا يوجد تذاكر دعم مطابقة لمعايير البحث.">
+      </app-empty-state>
+
+      <div class="ticket-cards" *ngIf="tickets.length > 0">
+        <div class="ticket-card" 
+             *ngFor="let ticket of tickets" 
+             [class.active]="selectedTicket?.id === ticket.id"
+             (click)="viewTicket(ticket.id)">
+          <div class="card-header">
+            <h3 class="item-title">{{ ticket.title }}</h3>
+            <span class="status-badge" [ngClass]="ticket.status ? ticket.status.toLowerCase() : ''">{{ ticket.status }}</span>
+          </div>
+          <div class="item-meta">
+            <span>{{ ticket.userName }}</span>
+            <span class="badge priority-{{ ticket.priority ? ticket.priority.toLowerCase() : '' }}">{{ ticket.priority }}</span>
+          </div>
+          <p class="time-meta">{{ ticket.createdAt | date:'shortTime' }}</p>
+        </div>
+      </div>
+      
+      <div class="pagination-simple" *ngIf="totalCount > pageSize">
+        <app-pagination 
+          [page]="page" 
+          [pageSize]="pageSize" 
+          [totalCount]="totalCount" 
+          (pageChange)="onPageChange($event)">
+        </app-pagination>
+      </div>
+    </div>
+
+    <!-- Details/Chat Column -->
+    <div class="details-column" *ngIf="selectedTicket || isDetailsLoading" [class.visible-mobile]="selectedTicket || isDetailsLoading">
+      <div class="mobile-back">
+        <button class="btn btn-secondary btn-sm" (click)="closeTicket()">&rarr; عودة للتذاكر</button>
+      </div>
+
+      <app-loading *ngIf="isDetailsLoading" [fullScreen]="false"></app-loading>
+
+      <div class="chat-container" *ngIf="selectedTicket && !isDetailsLoading">
+        <div class="chat-header">
+          <div class="header-info">
+            <h2>{{ selectedTicket.title }}</h2>
+            <p class="ticket-meta">
+              بواسطة: {{ selectedTicket.userName }} | 
+              القسم: {{ selectedTicket.category }} | 
+              <span class="status-text">{{ selectedTicket.status }}</span>
+            </p>
+          </div>
+          <div class="header-actions" *ngIf="selectedTicket.status !== 'Resolved' && selectedTicket.status !== 'Closed'">
+            <button class="btn btn-success" (click)="openResolveModal()">حل وإغلاق</button>
+          </div>
+        </div>
+
+        <div class="ticket-description">
+          <h3>وصف المشكلة:</h3>
+          <p>{{ selectedTicket.description }}</p>
+        </div>
+
+        <div class="messages-area" #chatContainer>
+          <div class="message-bubble" 
+               *ngFor="let msg of selectedTicket.messages"
+               [class.admin-msg]="msg.senderRole === 'Admin'"
+               [class.user-msg]="msg.senderRole !== 'Admin'">
+            <div class="msg-header">
+              <span class="sender-name">{{ msg.senderName }} ({{ msg.senderRole }})</span>
+              <span class="msg-time">{{ msg.createdAt | date:'shortTime' }}</span>
+            </div>
+            <div class="msg-content">{{ msg.content }}</div>
+          </div>
+          
+          <div class="empty-messages" *ngIf="selectedTicket.messages.length === 0">
+            لا توجد ردود بعد.
+          </div>
+        </div>
+
+        <div class="reply-area" *ngIf="selectedTicket.status !== 'Resolved' && selectedTicket.status !== 'Closed'">
+          <textarea 
+            class="form-control" 
+            placeholder="اكتب ردك هنا..." 
+            [(ngModel)]="replyContent"
+            rows="3"
+            (keyup.enter)="sendReply()"></textarea>
+          <button class="btn btn-primary" [disabled]="!replyContent.trim() || isReplying" (click)="sendReply()">
+            {{ isReplying ? 'جاري الإرسال...' : 'إرسال الرد' }}
+          </button>
+        </div>
+        <div class="ticket-closed-notice" *ngIf="selectedTicket.status === 'Resolved' || selectedTicket.status === 'Closed'">
+          هذه التذكرة مغلقة ولا يمكن إضافة ردود جديدة.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-action-modal 
+  [isOpen]="isModalOpen"
+  [title]="modalTitle"
+  [description]="modalDesc"
+  [confirmText]="modalConfirmText"
+  [confirmColor]="modalConfirmColor"
+  [requireNote]="requireNote"
+  noteLabel="ملاحظات الحل"
+  (confirm)="handleModalConfirm($event)"
+  (close)="isModalOpen = false">
+</app-action-modal>

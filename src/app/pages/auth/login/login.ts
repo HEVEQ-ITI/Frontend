@@ -3,6 +3,10 @@ import { ChangeDetectorRef, Component } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { finalize } from 'rxjs'
+import { Component } from '@angular/core'
+import { CommonModule } from '@angular/common'
+import { FormsModule } from '@angular/forms'
+import { Router, RouterLink } from '@angular/router'
 import { Auth } from '../../../core/services/auth'
 import { TokenStorage } from '../../../core/services/token-storage'
 
@@ -18,9 +22,7 @@ export class Login {
   password = ''
 
   errorMessage = ''
-  infoMessage = ''
   isLoading = false
-  showResendConfirmation = false
 
   constructor(
     private authService: Auth,
@@ -32,8 +34,6 @@ export class Login {
 
   submit(): void {
     this.errorMessage = ''
-    this.infoMessage = ''
-    this.showResendConfirmation = false
 
     if (!this.email || !this.password) {
       this.errorMessage = 'من فضلك اكتب البريد الإلكتروني وكلمة المرور'
@@ -57,6 +57,7 @@ export class Login {
     .subscribe({
       next: response => {
         if (!response.isAuthenticated) {
+          this.isLoading = false
           this.errorMessage = response.message || 'بيانات الدخول غير صحيحة'
           this.cdr.detectChanges()
           return
@@ -98,10 +99,22 @@ export class Login {
       this.cdr.detectChanges()
       return
     }
+        const role = this.tokenStorage.getRole()
 
-    this.isLoading = true
-    this.errorMessage = ''
-    this.infoMessage = ''
+        if (role === 'customer') {
+          this.router.navigate(['/'])
+          return
+        }
+
+        if (role === 'provider') {
+          this.router.navigate(['/provider-dashboard'])
+          return
+        }
+
+        if (role === 'admin' || role === 'employee') {
+          this.router.navigate(['/admin'])
+          return
+        }
 
     this.authService.resendConfirmationEmail({ email: this.email })
       .pipe(
@@ -147,6 +160,15 @@ export class Login {
 
       if (Array.isArray(errors)) {
         return errors.join('، ')
+        this.router.navigate(['/'])
+      },
+      error: error => {
+        this.isLoading = false
+        this.errorMessage =
+          error.error?.message ||
+          error.error?.title ||
+          (typeof error.error === 'string' ? error.error : null) ||
+          'حدث خطأ أثناء تسجيل الدخول'
       }
 
       if (typeof errors === 'object') {

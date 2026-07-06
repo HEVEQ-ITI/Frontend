@@ -5,11 +5,13 @@ import { Navbar } from './layout/navbar/navbar'
 import { Sidebar } from './layout/sidebar/sidebar'
 import { Auth } from './core/services/auth'
 import { TokenStorage } from './core/services/token-storage'
+import { ToastComponent } from './shared/components/toast/toast.component'
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, Footer, Navbar, Sidebar],
+  imports: [RouterOutlet, Footer, Navbar, Sidebar, ToastComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
