@@ -52,20 +52,22 @@ export class RealtimeService {
 
     this.isConnecting = true
 
-    this.connection
-      .start()
-      .then(() => {
-        this.ngZone.run(() => {
-          this.isConnecting = false
-          console.log('SignalR connected')
+    this.ngZone.runOutsideAngular(() => {
+      this.connection!
+        .start()
+        .then(() => {
+          this.ngZone.run(() => {
+            this.isConnecting = false
+            console.log('SignalR connected')
+          })
         })
-      })
-      .catch(error => {
-        this.ngZone.run(() => {
-          this.isConnecting = false
-          console.error('SignalR connection failed', error)
+        .catch(error => {
+          this.ngZone.run(() => {
+            this.isConnecting = false
+            console.error('SignalR connection failed', error)
+          })
         })
-      })
+    })
 
     this.connection.onreconnected(() => {
       this.ngZone.run(() => {
