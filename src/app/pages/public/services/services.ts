@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { HttpErrorResponse } from '@angular/common/http'
 import { ServiceListings } from '../../../core/services/service-listings'
-import { Categories } from '../../../core/services/categories'
+import { CategoriesService } from '../../../core/services/categories'
 import { Toast } from '../../../core/services/toast'
 import { extractErrorMessage } from '../../../core/models/api-error.models'
 import { Category } from '../../../core/models/category.models'
@@ -35,13 +35,13 @@ export class Services implements OnInit {
 
   constructor(
     private serviceListings: ServiceListings,
-    private categoriesApi: Categories,
+    private categoriesService: CategoriesService,
     private toast: Toast,
     private router: Router
   ) {}
 
   ngOnInit(): void {
-    this.categoriesApi.getAll('Service').subscribe({
+    this.categoriesService.getCategories('Service').subscribe({
       next: categories => (this.categories = categories),
       error: (err: HttpErrorResponse) => this.toast.error(extractErrorMessage(err))
     })

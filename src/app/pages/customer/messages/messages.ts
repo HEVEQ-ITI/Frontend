@@ -228,7 +228,7 @@ export class Messages implements OnInit, OnDestroy {
           id: message.id,
           senderName: message.senderName || 'مستخدم',
           messageType: message.messageType || 'Text',
-          body: message.body,
+          body: message.body ?? null,
           createdAt: message.sentAt
         }
       ]

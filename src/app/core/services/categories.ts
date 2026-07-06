@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { API_BASE_URL } from '../constants/api.constants'
-import { CategoryDto, CategoryType } from '../models/Category.models'
+import { CategoryDto, CategoryType } from '../models/category.models'
 
 @Injectable({
   providedIn: 'root'

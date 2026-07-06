@@ -141,11 +141,6 @@ export const routes: Routes = [
     component: Earnings,
     canActivate: [authGuard, roleGuard(['provider'])]
   },
-  {
-    path: 'create-listing',
-    component: CreateListing,
-    canActivate: [authGuard, roleGuard(['provider'])]
-  },
 
   {
     path: 'admin',
