@@ -8,6 +8,7 @@ import { TokenStorage } from './core/services/token-storage'
 
 @Component({
   selector: 'app-root',
+  standalone: true,
   imports: [RouterOutlet, Footer, Navbar, Sidebar],
   templateUrl: './app.html',
   styleUrl: './app.css'

@@ -29,6 +29,16 @@ import { Marketplace } from './pages/public/marketplace/marketplace'
 import { ProductDetails } from './pages/public/product-details/product-details'
 
 import { Notifications } from './pages/customer/notifications/notifications'
+import { AccountVerification } from './pages/account-verification/accountVerification'
+import { SavedAddresses } from './pages/customer/saved-addresses/saved-addresses'
+import { SupportTickets } from './pages/customer/support-tickets/supportTickets'
+import { Messages } from './pages/customer/messages/messages'
+import { Reviews } from './pages/customer/reviews/reviews'
+import { CreateBooking } from './pages/customer/create-booking/create-booking'
+import { PaymentSuccess } from './pages/customer/payment-success/payment-success'
+import { PaymentCancel } from './pages/customer/payment-cancel/payment-cancel'
+
+
 
 export const routes: Routes = [
   {
@@ -132,6 +142,48 @@ export const routes: Routes = [
   component: Notifications,
   canActivate: [authGuard]
   },
+
+  {
+  path: 'account-verification',
+  component: AccountVerification,
+  canActivate: [authGuard]
+},
+{
+  path: 'saved-addresses',
+  component: SavedAddresses,
+  canActivate: [authGuard]
+},
+{
+  path: 'support-tickets',
+  component: SupportTickets,
+  canActivate: [authGuard]
+},
+{
+  path: 'messages',
+  component: Messages,
+  canActivate: [authGuard]
+},
+{
+  path: 'reviews',
+  component: Reviews,
+  canActivate: [authGuard]
+},
+
+{
+  path: 'create-booking/:serviceListingId',
+  component: CreateBooking,
+  canActivate: [authGuard, roleGuard(['customer'])]
+},
+{
+  path: 'payment/success',
+  component: PaymentSuccess,
+  canActivate: [authGuard, roleGuard(['customer'])]
+},
+{
+  path: 'payment/cancel',
+  component: PaymentCancel,
+  canActivate: [authGuard, roleGuard(['customer'])]
+},
 
   {
     path: '**',

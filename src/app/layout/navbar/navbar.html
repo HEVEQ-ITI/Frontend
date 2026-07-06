@@ -52,6 +52,18 @@
                             {{ dashboardLabel }}
                         </a>
 
+                        <a routerLink="/account-verification" class="dropdown-item" (click)="isDropdownOpen = false">
+                            توثيق الحساب
+                        </a>
+
+                        <a routerLink="/support-tickets" class="dropdown-item" (click)="isDropdownOpen = false">
+                            الدعم الفني
+                        </a>
+
+                        <a routerLink="/reviews" class="dropdown-item" (click)="isDropdownOpen = false">
+    التقييمات
+</a>
+
                         <button type="button" class="dropdown-item logout-btn-item" (click)="logout()">
                             تسجيل الخروج
                         </button>

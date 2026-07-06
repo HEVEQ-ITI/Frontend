@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common'
-import { Component } from '@angular/core'
+import { ChangeDetectorRef, Component } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
+import { finalize } from 'rxjs'
 import { Auth } from '../../../core/services/auth'
 import { TokenStorage } from '../../../core/services/token-storage'
 
@@ -15,6 +16,7 @@ import { TokenStorage } from '../../../core/services/token-storage'
 export class Login {
   email = ''
   password = ''
+
   errorMessage = ''
   infoMessage = ''
   isLoading = false
@@ -24,24 +26,39 @@ export class Login {
     private authService: Auth,
     private tokenStorage: TokenStorage,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
   ) {}
 
   submit(): void {
-    this.isLoading = true
     this.errorMessage = ''
     this.infoMessage = ''
     this.showResendConfirmation = false
 
+    if (!this.email || !this.password) {
+      this.errorMessage = 'من فضلك اكتب البريد الإلكتروني وكلمة المرور'
+      this.cdr.detectChanges()
+      return
+    }
+
+    this.isLoading = true
+    this.cdr.detectChanges()
+
     this.authService.login({
       email: this.email,
       password: this.password
-    }).subscribe({
-      next: response => {
+    })
+    .pipe(
+      finalize(() => {
         this.isLoading = false
-
+        this.cdr.detectChanges()
+      })
+    )
+    .subscribe({
+      next: response => {
         if (!response.isAuthenticated) {
           this.errorMessage = response.message || 'بيانات الدخول غير صحيحة'
+          this.cdr.detectChanges()
           return
         }
 
@@ -60,21 +77,17 @@ export class Login {
         })
       },
       error: error => {
-        this.isLoading = false
-
         const response = error.error
 
         if (error.status === 403 && response?.requiresEmailConfirmation) {
           this.showResendConfirmation = true
           this.errorMessage = response.message || 'يجب تأكيد البريد الإلكتروني قبل تسجيل الدخول'
+          this.cdr.detectChanges()
           return
         }
 
-        this.errorMessage =
-          response?.message ||
-          response?.Message ||
-          response ||
-          'حدث خطأ أثناء تسجيل الدخول'
+        this.errorMessage = this.getErrorMessage(error, 'حدث خطأ أثناء تسجيل الدخول')
+        this.cdr.detectChanges()
       }
     })
   }
@@ -82,6 +95,7 @@ export class Login {
   resendConfirmationEmail(): void {
     if (!this.email) {
       this.errorMessage = 'اكتب البريد الإلكتروني أولاً'
+      this.cdr.detectChanges()
       return
     }
 
@@ -89,20 +103,59 @@ export class Login {
     this.errorMessage = ''
     this.infoMessage = ''
 
-    this.authService.resendConfirmationEmail({ email: this.email }).subscribe({
-      next: response => {
-        this.isLoading = false
-        this.infoMessage = response.message || 'تم إرسال رابط التأكيد مرة أخرى'
-        this.showResendConfirmation = false
-      },
-      error: error => {
-        this.isLoading = false
-        this.errorMessage =
-          error.error?.message ||
-          error.error?.Message ||
-          error.error ||
-          'تعذر إرسال رابط التأكيد'
+    this.authService.resendConfirmationEmail({ email: this.email })
+      .pipe(
+        finalize(() => {
+          this.isLoading = false
+          this.cdr.detectChanges()
+        })
+      )
+      .subscribe({
+        next: response => {
+          this.infoMessage = response.message || 'تم إرسال رابط التأكيد مرة أخرى'
+          this.showResendConfirmation = false
+          this.cdr.detectChanges()
+        },
+        error: error => {
+          this.errorMessage = this.getErrorMessage(error, 'تعذر إرسال رابط التأكيد')
+          this.cdr.detectChanges()
+        }
+      })
+  }
+
+  private getErrorMessage(error: any, fallback: string): string {
+    const response = error?.error
+
+    if (!response) {
+      return fallback
+    }
+
+    if (typeof response === 'string') {
+      return response
+    }
+
+    if (response.message) {
+      return response.message
+    }
+
+    if (response.Message) {
+      return response.Message
+    }
+
+    if (response.errors) {
+      const errors = response.errors
+
+      if (Array.isArray(errors)) {
+        return errors.join('، ')
       }
-    })
+
+      if (typeof errors === 'object') {
+        return Object.values(errors)
+          .flat()
+          .join('، ')
+      }
+    }
+
+    return fallback
   }
 }
