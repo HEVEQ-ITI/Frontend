@@ -1,7 +1,7 @@
 <nav class="navbar">
     <div class="container">
         <a routerLink="/" class="nav-brand">
-            <span>شير</span>جير
+            <span>هيڤ</span>يك
         </a>
 
         <div class="navbar-links" *ngIf="showNavLinks">
@@ -19,9 +19,6 @@
                 {{ themeIcon }}
             </button>
 
-            <button type="button" class="action-btn" title="تغيير اللغة">
-                EN
-            </button>
 
             <ng-container *ngIf="isAuth; else guestActions">
                 <button type="button" class="action-btn" title="الإشعارات">

@@ -7,3 +7,6 @@ export interface Category {
   type: CategoryType
   parentId: number | null
 }
+
+export type CategoryDto = Category
+

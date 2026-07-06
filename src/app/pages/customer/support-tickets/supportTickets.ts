@@ -90,8 +90,8 @@ export class SupportTickets implements OnInit, OnDestroy {
 
     this.latestNotificationSub = this.notificationsService.latestNotification$.subscribe(notification => {
       if (
-        notification.eventType.includes('Ticket') ||
-        notification.eventType.includes('Message')
+        notification.eventType?.includes('Ticket') ||
+        notification.eventType?.includes('Message')
       ) {
         this.loadTickets()
 
