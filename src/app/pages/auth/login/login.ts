@@ -1,7 +1,7 @@
-import { CommonModule } from '@angular/common'
 import { Component } from '@angular/core'
+import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
-import { ActivatedRoute, Router, RouterLink } from '@angular/router'
+import { Router, RouterLink } from '@angular/router'
 import { Auth } from '../../../core/services/auth'
 import { TokenStorage } from '../../../core/services/token-storage'
 
@@ -16,22 +16,17 @@ export class Login {
   email = ''
   password = ''
   errorMessage = ''
-  infoMessage = ''
   isLoading = false
-  showResendConfirmation = false
 
   constructor(
     private authService: Auth,
     private tokenStorage: TokenStorage,
-    private router: Router,
-    private route: ActivatedRoute
+    private router: Router
   ) {}
 
   submit(): void {
     this.isLoading = true
     this.errorMessage = ''
-    this.infoMessage = ''
-    this.showResendConfirmation = false
 
     this.authService.login({
       email: this.email,
@@ -44,63 +39,32 @@ export class Login {
           return
         }
 
-        this.authService.getMe().subscribe({
-          next: () => {
-            const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl')
-            const role = this.tokenStorage.getRole()
-            const dashboardRoute = returnUrl || this.authService.getDashboardRoute(role)
+        const role = this.tokenStorage.getRole()
 
-            this.router.navigate([dashboardRoute])
-          },
-          error: () => {
-            const role = this.tokenStorage.getRole()
-            this.router.navigate([this.authService.getDashboardRoute(role)])
-          }
-        })
-      },
-      error: error => {
-        this.isLoading = false
-
-        const response = error.error
-
-        if (error.status === 403 && response?.requiresEmailConfirmation) {
-          this.showResendConfirmation = true
-          this.errorMessage = response.message || 'يجب تأكيد البريد الإلكتروني قبل تسجيل الدخول'
+        if (role === 'customer') {
+          this.router.navigate(['/'])
           return
         }
 
-        this.errorMessage =
-          response?.message ||
-          response?.Message ||
-          response ||
-          'حدث خطأ أثناء تسجيل الدخول'
-      }
-    })
-  }
+        if (role === 'provider') {
+          this.router.navigate(['/provider-dashboard'])
+          return
+        }
 
-  resendConfirmationEmail(): void {
-    if (!this.email) {
-      this.errorMessage = 'اكتب البريد الإلكتروني أولاً'
-      return
-    }
+        if (role === 'admin' || role === 'employee') {
+          this.router.navigate(['/admin'])
+          return
+        }
 
-    this.isLoading = true
-    this.errorMessage = ''
-    this.infoMessage = ''
-
-    this.authService.resendConfirmationEmail({ email: this.email }).subscribe({
-      next: response => {
-        this.isLoading = false
-        this.infoMessage = response.message || 'تم إرسال رابط التأكيد مرة أخرى'
-        this.showResendConfirmation = false
+        this.router.navigate(['/'])
       },
       error: error => {
         this.isLoading = false
         this.errorMessage =
           error.error?.message ||
-          error.error?.Message ||
-          error.error ||
-          'تعذر إرسال رابط التأكيد'
+          error.error?.title ||
+          (typeof error.error === 'string' ? error.error : null) ||
+          'حدث خطأ أثناء تسجيل الدخول'
       }
     })
   }

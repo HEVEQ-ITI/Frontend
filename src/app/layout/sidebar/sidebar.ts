@@ -65,7 +65,7 @@ export class Sidebar implements OnInit, OnDestroy {
     }
 
     if (this.role === 'provider') {
-      return ['/provider-dashboard', '/booking-requests', '/active-jobs', '/equipment', '/earnings'].some(x => url.startsWith(x))
+      return ['/provider-dashboard', '/booking-requests', '/active-jobs', '/equipment', '/earnings', '/create-listing'].some(x => url.startsWith(x))
     }
 
     if (this.role === 'admin' || this.role === 'employee') {
