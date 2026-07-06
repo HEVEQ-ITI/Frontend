@@ -1,76 +1,93 @@
 import { CommonModule } from '@angular/common'
-import { Component } from '@angular/core'
+import { Component, OnInit } from '@angular/core'
+import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
-
-interface ServiceListing {
-  id: string
-  title: string
-  image: string
-  hourlyRate: number
-  dailyRate: number
-  equipmentModel: string
-  equipmentCapacity: string
-  serviceZone: string
-  availabilityAr: string
-  operatorSummary: string
-  providerCompany: string
-}
+import { HttpErrorResponse } from '@angular/common/http'
+import { ServiceListings } from '../../../core/services/service-listings'
+import { Categories } from '../../../core/services/categories'
+import { Toast } from '../../../core/services/toast'
+import { extractErrorMessage } from '../../../core/models/api-error.models'
+import { Category } from '../../../core/models/category.models'
+import { PublicServiceListing, PublicServiceListingFilters } from '../../../core/models/service-listing.models'
 
 @Component({
   selector: 'app-services',
-  imports: [CommonModule],
+  standalone: true,
+  imports: [CommonModule, FormsModule],
   templateUrl: './services.html',
   styleUrl: './services.css'
 })
-export class Services {
-  listings: ServiceListing[] = [
-    {
-      id: '1',
-      title: 'ونش تادانو 50 طن',
-      image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=800',
-      hourlyRate: 850,
-      dailyRate: 2500,
-      equipmentModel: 'Tadano',
-      equipmentCapacity: '50 طن',
-      serviceZone: 'الرياض',
-      availabilityAr: 'متاح للحجز',
-      operatorSummary: 'مشغل مرخص',
-      providerCompany: 'المقاولون العرب'
-    },
-    {
-      id: '2',
-      title: 'حفار كاتربيلر 320D',
-      image: 'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=800',
-      hourlyRate: 650,
-      dailyRate: 2100,
-      equipmentModel: 'Caterpillar 320D',
-      equipmentCapacity: 'متوسط',
-      serviceZone: 'الدمام',
-      availabilityAr: 'متاح اليوم',
-      operatorSummary: 'مشغل معتمد',
-      providerCompany: 'السعودي للمعدات'
-    },
-    {
-      id: '3',
-      title: 'مولد كهرباء صناعي',
-      image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800',
-      hourlyRate: 300,
-      dailyRate: 1200,
-      equipmentModel: 'Generator 250KVA',
-      equipmentCapacity: '250 KVA',
-      serviceZone: 'جدة',
-      availabilityAr: 'متاح خلال 24 ساعة',
-      operatorSummary: 'بدون مشغل',
-      providerCompany: 'النور للتأجير'
-    }
-  ]
+export class Services implements OnInit {
+  listings: PublicServiceListing[] = []
+  categories: Category[] = []
+  isLoading = false
+  totalCount = 0
 
-  constructor(private router: Router) {}
+  filters: PublicServiceListingFilters = {
+    search: '',
+    categoryId: undefined,
+    governorate: '',
+    minRate: undefined,
+    maxRate: undefined,
+    page: 1,
+    pageSize: 9
+  }
 
-  bookService(id: string): void {
-    console.log('Selected service id:', id)
+  constructor(
+    private serviceListings: ServiceListings,
+    private categoriesApi: Categories,
+    private toast: Toast,
+    private router: Router
+  ) {}
 
-    // لما تعمل صفحة booking wizard بعدين هنغيرها للمسار الحقيقي
-    // this.router.navigate(['/booking-wizard', id])
+  ngOnInit(): void {
+    this.categoriesApi.getAll('Service').subscribe({
+      next: categories => (this.categories = categories),
+      error: (err: HttpErrorResponse) => this.toast.error(extractErrorMessage(err))
+    })
+
+    this.loadListings()
+  }
+
+  loadListings(): void {
+    this.isLoading = true
+
+    this.serviceListings.getPublicList(this.filters).subscribe({
+      next: result => {
+        this.listings = result.items
+        this.totalCount = result.totalCount
+        this.isLoading = false
+      },
+      error: (err: HttpErrorResponse) => {
+        this.isLoading = false
+        this.toast.error(extractErrorMessage(err))
+      }
+    })
+  }
+
+  search(): void {
+    this.filters.page = 1
+    this.loadListings()
+  }
+
+  nextPage(): void {
+    const page = this.filters.page ?? 1
+    const pageSize = this.filters.pageSize ?? 9
+    if (page * pageSize >= this.totalCount) return
+
+    this.filters.page = page + 1
+    this.loadListings()
+  }
+
+  previousPage(): void {
+    const page = this.filters.page ?? 1
+    if (page <= 1) return
+
+    this.filters.page = page - 1
+    this.loadListings()
+  }
+
+  viewListing(id: string): void {
+    this.router.navigate(['/service-details', id])
   }
 }

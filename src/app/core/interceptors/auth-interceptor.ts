@@ -1,8 +1,8 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http'
 import { inject } from '@angular/core'
 import { catchError, switchMap, throwError } from 'rxjs'
-import { Auth } from '../services/auth'
 import { TokenStorage } from '../services/token-storage'
+import { Auth } from '../services/auth'
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const tokenStorage = inject(TokenStorage)
@@ -14,9 +14,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     req.url.includes('/Auth/Login') ||
     req.url.includes('/Auth/Register') ||
     req.url.includes('/Auth/refresh-token') ||
-    req.url.includes('/Auth/logout') ||
-    req.url.includes('/Auth/confirm-email') ||
-    req.url.includes('/Auth/resend-confirmation-email')
+    req.url.includes('/Auth/logout')
 
   const authReq = accessToken && !isAuthEndpoint
     ? req.clone({
@@ -41,11 +39,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
       return authService.refreshToken(refreshToken).pipe(
         switchMap(response => {
-          tokenStorage.updateTokens(response.accessToken, response.refreshToken)
+          tokenStorage.saveAuth(response)
+
+          const newAccessToken = response.accessToken
 
           const retryReq = req.clone({
             setHeaders: {
-              Authorization: `Bearer ${response.accessToken}`
+              Authorization: `Bearer ${newAccessToken}`
             }
           })
 
