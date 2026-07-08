@@ -51,4 +51,25 @@ export class MarketplaceService {
   createListing(request: CreateMarketplaceListingRequest) {
     return this.http.post<CreateMarketplaceListingResponse>(`${API_BASE_URL}/marketplace-listings`, request)
   }
+
+  updateListing(id: string, request: CreateMarketplaceListingRequest) {
+    return this.http.put<void>(`${API_BASE_URL}/marketplace-listings/${id}`, request)
+  }
+
+  addPhoto(listingId: string, request: { photoUrl: string; displayOrder: number }) {
+    return this.http.post<string>(`${API_BASE_URL}/marketplace-listings/${listingId}/photos`, request)
+  }
+
+  deletePhoto(listingId: string, photoId: string) {
+    return this.http.delete<void>(`${API_BASE_URL}/marketplace-listings/${listingId}/photos/${photoId}`)
+  }
+
+  getMine(page = 1, pageSize = 50) {
+    const params = new HttpParams().set('page', page).set('pageSize', pageSize)
+    return this.http.get<PagedResult<MarketplaceListing>>(`${API_BASE_URL}/provider/marketplace-listings`, { params })
+  }
+
+  deleteListing(id: string) {
+    return this.http.delete<void>(`${API_BASE_URL}/marketplace-listings/${id}`)
+  }
 }

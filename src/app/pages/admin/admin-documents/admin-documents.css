@@ -75,6 +75,21 @@
   padding-right: var(--s2);
 }
 
+/* Thin Scrollbar for List Column */
+.list-column::-webkit-scrollbar {
+  width: 6px;
+}
+.list-column::-webkit-scrollbar-track {
+  background: transparent;
+}
+.list-column::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
+}
+.list-column::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
 .doc-cards {
   display: flex;
   flex-direction: column;
@@ -88,17 +103,58 @@
   border-radius: var(--radius-sm);
   padding: var(--s4);
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .doc-card:hover {
   border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(244, 163, 0, 0.08);
 }
 
 .doc-card.active {
   border-color: var(--primary);
-  background-color: rgba(244, 163, 0, 0.05);
-  box-shadow: 0 0 0 1px var(--primary);
+  background-color: rgba(244, 163, 0, 0.04);
+  box-shadow: 0 0 0 1px var(--primary), 0 4px 12px rgba(244, 163, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Scroll loader styling */
+.scroll-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--s4) 0;
+}
+
+.loader-dots {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.loader-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  opacity: 0.6;
+  animation: bounce 0.6s infinite alternate;
+}
+
+.loader-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loader-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes bounce {
+  to {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
 }
 
 .card-header {
@@ -346,4 +402,30 @@
   .mobile-back {
     display: block;
   }
+}
+
+.ai-note {
+  margin-top: var(--s3);
+  padding: var(--s3);
+  border-radius: var(--radius-sm);
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+}
+
+.ai-note h4 {
+  margin: 0 0 var(--s2);
+  color: var(--primary);
+  font-size: var(--text-sm);
+}
+
+.ai-note p {
+  margin: 0;
+  color: var(--text-main);
+  line-height: 1.8;
+  white-space: pre-line;
+}
+
+.ai-note.warning {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.2);
 }

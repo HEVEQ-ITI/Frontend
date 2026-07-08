@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { finalize, Subscription } from 'rxjs'
+import { ActivatedRoute } from '@angular/router'
 import { getErrorMessage } from '../../../core/helpers/errorMessageHelper'
 import {
   ConversationListItem,
@@ -33,14 +34,17 @@ export class Messages implements OnInit, OnDestroy {
   newMessageBody = ''
 
   private realtimeMessageSub?: Subscription
+  private pendingConversationId: string | null = null
 
   constructor(
     private conversationsService: ConversationsService,
     private realtimeService: RealtimeService,
+    private route: ActivatedRoute,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    this.pendingConversationId = this.route.snapshot.queryParamMap.get('conversationId')
     this.loadConversations()
 
     this.realtimeMessageSub = this.realtimeService.messageReceived$.subscribe(message => {
@@ -69,7 +73,14 @@ export class Messages implements OnInit, OnDestroy {
         next: response => {
           this.conversations = response.items ?? []
 
-          if (!this.selectedConversation && this.conversations.length > 0) {
+          const requestedConversation = this.pendingConversationId
+            ? this.conversations.find(item => item.id === this.pendingConversationId)
+            : null
+
+          if (requestedConversation) {
+            this.pendingConversationId = null
+            this.openConversation(requestedConversation)
+          } else if (!this.selectedConversation && this.conversations.length > 0) {
             this.openConversation(this.conversations[0])
           }
 

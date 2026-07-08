@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router'
 import { finalize } from 'rxjs'
 import { getErrorMessage } from '../../../core/helpers/errorMessageHelper'
 import { BookingsService } from '../../../core/services/bookingsService'
+import { MarketplaceOrdersService } from '../../../core/services/marketplace-orders'
 
 @Component({
   selector: 'app-payment-success',
@@ -16,10 +17,13 @@ export class PaymentSuccess implements OnInit {
   isLoading = true
   successMessage = ''
   errorMessage = ''
+  returnLink = '/bookings'
+  returnLabel = 'الرجوع إلى حجوزاتي'
 
   constructor(
     private route: ActivatedRoute,
     private bookingsService: BookingsService,
+    private marketplaceOrdersService: MarketplaceOrdersService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
   ) {}
@@ -28,6 +32,7 @@ export class PaymentSuccess implements OnInit {
   const type = this.route.snapshot.queryParamMap.get('type')
   const bookingId = this.route.snapshot.queryParamMap.get('bookingId')
   const timeAdjustmentId = this.route.snapshot.queryParamMap.get('timeAdjustmentId')
+  const marketplaceOrderId = this.route.snapshot.queryParamMap.get('marketplaceOrderId')
   const sessionId = this.route.snapshot.queryParamMap.get('session_id')
 
   if (type === 'booking') {
@@ -51,6 +56,21 @@ export class PaymentSuccess implements OnInit {
     }
 
     this.confirmTimeAdjustmentPayment(timeAdjustmentId, sessionId)
+    return
+  }
+
+  if (type === 'marketplaceOrder') {
+    this.returnLink = '/marketplace-orders'
+    this.returnLabel = 'الرجوع إلى طلبات السوق'
+
+    if (!marketplaceOrderId) {
+      this.isLoading = false
+      this.errorMessage = 'بيانات دفع طلب السوق غير مكتملة'
+      this.updateView()
+      return
+    }
+
+    this.confirmMarketplaceOrderPayment(marketplaceOrderId, sessionId)
     return
   }
 
@@ -91,7 +111,8 @@ export class PaymentSuccess implements OnInit {
     .subscribe({
       next: response => {
         this.ngZone.run(() => {
-          this.successMessage = response.message || 'تم الدفع بنجاح وتم تفعيل الحجز'
+          const isMsgAr = response.message && /[\u0600-\u06FF]/.test(response.message)
+          this.successMessage = isMsgAr ? response.message : 'تم الدفع بنجاح وتم تفعيل الحجز'
           this.cdr.detectChanges()
         })
       },
@@ -130,13 +151,54 @@ private confirmTimeAdjustmentPayment(timeAdjustmentId: string, sessionId: string
     .subscribe({
       next: response => {
         this.ngZone.run(() => {
-          this.successMessage = response.message || 'تم دفع قيمة زيادة الوقت بنجاح'
+          const isMsgAr = response.message && /[\u0600-\u06FF]/.test(response.message)
+          this.successMessage = isMsgAr ? response.message : 'تم دفع قيمة زيادة الوقت بنجاح'
           this.cdr.detectChanges()
         })
       },
       error: error => {
         this.ngZone.run(() => {
           this.errorMessage = getErrorMessage(error, 'تم الرجوع من Stripe لكن تعذر تأكيد دفع زيادة الوقت داخل النظام')
+          this.cdr.detectChanges()
+        })
+      }
+    })
+}
+
+private confirmMarketplaceOrderPayment(orderId: string, sessionId: string | null): void {
+  if (!sessionId) {
+    this.ngZone.run(() => {
+      this.isLoading = false
+      this.errorMessage = 'رقم جلسة الدفع غير موجود في رابط الرجوع من Stripe'
+      this.cdr.detectChanges()
+    })
+
+    return
+  }
+
+  this.marketplaceOrdersService
+    .confirmPayment(orderId, {
+      paymentGatewayReference: sessionId
+    })
+    .pipe(
+      finalize(() => {
+        this.ngZone.run(() => {
+          this.isLoading = false
+          this.cdr.detectChanges()
+        })
+      })
+    )
+    .subscribe({
+      next: response => {
+        this.ngZone.run(() => {
+          const isMsgAr = response.message && /[\u0600-\u06FF]/.test(response.message)
+          this.successMessage = isMsgAr ? response.message : 'تم دفع طلب السوق بنجاح'
+          this.cdr.detectChanges()
+        })
+      },
+      error: error => {
+        this.ngZone.run(() => {
+          this.errorMessage = getErrorMessage(error, 'تم الرجوع من Stripe لكن تعذر تأكيد دفع طلب السوق داخل النظام')
           this.cdr.detectChanges()
         })
       }

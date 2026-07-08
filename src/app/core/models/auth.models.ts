@@ -8,6 +8,7 @@ export interface RegisterRequest {
   lastName: string;
   userName: string;
   email: string;
+  phoneNumber: string;
   password: string;
   role: string;
 }
@@ -19,13 +20,21 @@ export interface CurrentUserResponse {
   phoneNumber: string
   role: string
   isActive: boolean
+  isIdentityVerified?: boolean | null
   profileCompleted: boolean
   trustScore?: number | null
   dashboardUrl?: string | null
+  employeeDepartment?: string | null
+  isAvailableForDispatch?: boolean | null
 }
 
 export interface AuthResponse {
   isAuthenticated: boolean;
+  succeeded?: boolean;
+  requiresEmailConfirmation?: boolean;
+  emailConfirmationSent?: boolean;
+  isEmailConfirmed?: boolean;
+  profileCompleted?: boolean;
   message: string;
   displayName: string
   accessToken: string;

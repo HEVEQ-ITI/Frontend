@@ -98,9 +98,10 @@
 
         <!-- Order success -->
         <div class="pd-order-success" *ngIf="orderResult">
-          <p>✅ {{ orderResult.message }}</p>
+          <p><i class="fa-solid fa-circle-check"></i> {{ orderResult.message }}</p>
           <p>رقم الطلب: <strong>{{ orderResult.orderNumber }}</strong></p>
           <p>الحالة: <strong>{{ orderResult.statusAr }}</strong></p>
+          <p class="text-muted">سيتم تحويلك إلى صفحة دفع طلب السوق.</p>
         </div>
 
         <!-- Buy now CTA -->
@@ -112,6 +113,18 @@
         >
           اشترِ الآن
         </button>
+
+        <button
+          type="button"
+          class="btn btn-outline w-full"
+          style="margin-top: var(--s3);"
+          *ngIf="!isOwnListing"
+          [disabled]="isStartingConversation"
+          (click)="startSellerChat()"
+        >
+          {{ isStartingConversation ? 'جاري فتح المحادثة...' : 'تواصل مع البائع' }}
+        </button>
+        <p class="pd-order-error" *ngIf="chatError">{{ chatError }}</p>
 
         <!-- Buy form -->
         <form class="pd-buy-form" *ngIf="showBuyForm" (ngSubmit)="confirmPurchase()">
@@ -159,6 +172,34 @@
           </span>
           <span class="rating-value">{{ listing.seller.averageRating | number: '1.1-1' }}</span>
           <span class="rating-count">({{ listing.seller.totalReviewsCount ?? 0 }} تقييم)</span>
+        </div>
+      </div>
+
+      <div class="card pd-seller-card marketplace-reviews-card">
+        <h2>تقييمات المشترين لهذا البائع</h2>
+        <p class="text-muted">هذه التقييمات من طلبات سوق سابقة لنفس البائع، وتساعدك على تقييمه قبل الشراء.</p>
+        <div class="pd-seller-rating" *ngIf="sellerReviewsTotal > 0">
+          <span class="stars">
+            <span *ngFor="let filled of ratingStars(sellerReviewsAverage)" [class.filled]="filled">★</span>
+          </span>
+          <span class="rating-value">{{ sellerReviewsAverage | number: '1.1-1' }}</span>
+          <span class="rating-count">({{ sellerReviewsTotal }} تقييم سوق)</span>
+        </div>
+        <p class="text-muted" *ngIf="sellerReviewsLoading">جاري تحميل التقييمات...</p>
+        <div class="empty-reviews" *ngIf="!sellerReviewsLoading && sellerReviews.length === 0">
+          لا توجد تقييمات منشورة لهذا البائع حتى الآن.
+        </div>
+        <div class="reviews-list" *ngIf="!sellerReviewsLoading && sellerReviews.length > 0">
+          <div class="review-item" *ngFor="let review of sellerReviews">
+            <div class="review-top">
+              <strong>{{ review.reviewerName || 'مشتري' }}</strong>
+              <span class="stars">
+                <span *ngFor="let filled of ratingStars(review.rating)" [class.filled]="filled">★</span>
+              </span>
+            </div>
+            <p *ngIf="review.comment">{{ review.comment }}</p>
+            <small class="text-muted">{{ review.createdAt | date:'shortDate' }}</small>
+          </div>
         </div>
       </div>
     </div>

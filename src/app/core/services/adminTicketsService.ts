@@ -11,6 +11,11 @@ export interface AddMessageRequest {
   content: string;
 }
 
+export interface CreateFieldVisitRequest {
+  employeeUserId: string;
+  dispatchInstructions: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -29,7 +34,7 @@ export class AdminTicketsService {
   }
 
   getTicketDetails(id: string) {
-    return this.http.get<AdminTicketDetails>(`${API_BASE_URL}/admin/tickets/${id}`);
+    return this.http.get<AdminTicketDetails>(`${API_BASE_URL}/admin/tickets/${id}/decision-context`);
   }
 
   addMessage(id: string, request: AddMessageRequest) {
@@ -38,5 +43,31 @@ export class AdminTicketsService {
 
   resolveTicket(id: string, request: ResolveTicketRequest) {
     return this.http.post(`${API_BASE_URL}/admin/tickets/${id}/resolve`, request);
+  }
+
+  claimTicket(id: string) {
+    return this.http.post(`${API_BASE_URL}/admin/tickets/${id}/claim`, {});
+  }
+
+  assignTicket(id: string, assignedToUserId: string) {
+    return this.http.post(`${API_BASE_URL}/admin/tickets/${id}/assign`, { assignedToUserId });
+  }
+
+  takeoverTicket(id: string, reason: string) {
+    return this.http.post(`${API_BASE_URL}/admin/tickets/${id}/takeover`, { reason });
+  }
+
+  createFieldVisit(id: string, request: CreateFieldVisitRequest) {
+    return this.http.post(`${API_BASE_URL}/admin/tickets/${id}/field-visits`, request);
+  }
+
+  submitDisputeDecision(id: string, payload: {
+    decisionType: string;
+    decisionNote: string;
+    customerAmount: number;
+    providerAmount: number;
+    employeeId?: string;
+  }) {
+    return this.http.post(`${API_BASE_URL}/admin/tickets/${id}/dispute-decision`, payload);
   }
 }

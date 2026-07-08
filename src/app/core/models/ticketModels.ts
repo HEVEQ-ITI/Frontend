@@ -56,12 +56,19 @@ export interface TicketDetails {
   messages: TicketMessageItem[]
 }
 
+export interface CreateTicketAttachmentInput {
+  fileUrl: string
+  fileName: string
+  fileType: number | string
+}
+
 export interface CreateTicketRequest {
   subject: string
   category: TicketCategory
   message: string
   bookingId: string | null
   marketplaceOrderId: string | null
+  attachments?: CreateTicketAttachmentInput[]
 }
 
 export interface AddTicketMessageRequest {

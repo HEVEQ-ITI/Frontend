@@ -82,7 +82,7 @@ export class AdminFieldVerificationComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
       next: (res) => {
-        this.availableEmployees = res.items || [];
+        this.availableEmployees = (res.items || []).filter(u => u.isActive && u.isAvailableForDispatch !== false);
         this.cdr.detectChanges();
       }
     });

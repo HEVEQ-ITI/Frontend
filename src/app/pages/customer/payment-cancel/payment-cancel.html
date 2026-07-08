@@ -5,11 +5,11 @@
         <h1>تم إلغاء عملية الدفع</h1>
 
         <p>
-            لم يتم خصم أي مبلغ. يمكنك الرجوع إلى حجوزاتك والمحاولة مرة أخرى.
+            {{ cancelMessage }}
         </p>
 
-        <a routerLink="/bookings" class="btn btn-primary">
-            الرجوع إلى حجوزاتي
+        <a [routerLink]="returnLink" class="btn btn-primary">
+            {{ returnLabel }}
         </a>
     </div>
 </section>

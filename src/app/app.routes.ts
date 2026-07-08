@@ -6,6 +6,7 @@ import { SearchResults } from './pages/public/search-results/search-results'
 
 import { Login } from './pages/auth/login/login'
 import { Register } from './pages/auth/register/register'
+import { EmailConfirmation } from './pages/auth/email-confirmation/email-confirmation'
 
 import { Dashboard } from './pages/customer/dashboard/dashboard'
 import { Bookings } from './pages/customer/bookings/bookings'
@@ -15,10 +16,12 @@ import { Profile } from './pages/customer/profile/profile'
 import { ProviderDashboard } from './pages/provider/provider-dashboard/provider-dashboard'
 import { BookingRequests } from './pages/provider/booking-requests/booking-requests'
 import { ActiveJobs } from './pages/provider/active-jobs/active-jobs'
+import { ProviderBookings } from './pages/provider/provider-bookings/provider-bookings'
 import { Equipment } from './pages/provider/equipment/equipment'
 import { Earnings } from './pages/provider/earnings/earnings'
 import { CreateListing } from './pages/provider/create-listing/create-listing'
 import { Operators } from './pages/provider/operators/operators'
+import { ProviderAddresses } from './pages/provider/provider-addresses/provider-addresses'
 
 import { AdminDashboard } from './pages/admin/admin-dashboard/admin-dashboard'
 import { AdminUsers } from './pages/admin/admin-users/admin-users'
@@ -28,6 +31,7 @@ import { AdminDocuments } from './pages/admin/admin-documents/admin-documents'
 import { AdminTickets } from './pages/admin/admin-tickets/admin-tickets'
 import { AdminDisputes } from './pages/admin/admin-disputes/admin-disputes'
 import { AdminFieldVerificationComponent } from './pages/admin/admin-field-verification/admin-field-verification'
+import { AdminReviews } from './pages/admin/admin-reviews/admin-reviews'
 import { authGuard } from './core/guards/auth-guard'
 import { roleGuard } from './core/guards/role-guard'
 import { Home } from './pages/public/home/home'
@@ -43,6 +47,10 @@ import { Reviews } from './pages/customer/reviews/reviews'
 import { CreateBooking } from './pages/customer/create-booking/create-booking'
 import { PaymentSuccess } from './pages/customer/payment-success/payment-success'
 import { PaymentCancel } from './pages/customer/payment-cancel/payment-cancel'
+import { EmployeeFieldVisits } from './pages/employee/field-visits/field-visits'
+import { MarketplaceOrders } from './pages/customer/marketplace-orders/marketplace-orders'
+import { MarketplaceOrderPayment } from './pages/customer/marketplace-order-payment/marketplace-order-payment'
+import { MarketplaceSales } from './pages/provider/marketplace-sales/marketplace-sales'
 
 
 
@@ -79,6 +87,10 @@ export const routes: Routes = [
     path: 'register',
     component: Register
   },
+  {
+    path: 'auth/confirm-email',
+    component: EmailConfirmation
+  },
 
   {
     path: 'dashboard',
@@ -104,6 +116,11 @@ export const routes: Routes = [
   {
     path: 'provider-dashboard',
     component: ProviderDashboard,
+    canActivate: [authGuard, roleGuard(['provider'])]
+  },
+  {
+    path: 'provider-bookings',
+    component: ProviderBookings,
     canActivate: [authGuard, roleGuard(['provider'])]
   },
   {
@@ -141,6 +158,16 @@ export const routes: Routes = [
     component: Earnings,
     canActivate: [authGuard, roleGuard(['provider'])]
   },
+  {
+    path: 'marketplace-sales',
+    component: MarketplaceSales,
+    canActivate: [authGuard, roleGuard(['provider'])]
+  },
+  {
+    path: 'provider-addresses',
+    component: ProviderAddresses,
+    canActivate: [authGuard, roleGuard(['provider'])]
+  },
 
   {
     path: 'admin',
@@ -150,7 +177,7 @@ export const routes: Routes = [
   {
     path: 'admin/users',
     component: AdminUsers,
-    canActivate: [authGuard, roleGuard(['admin', 'employee'])]
+    canActivate: [authGuard, roleGuard(['admin'])]
   },
   {
     path: 'admin/listing-review',
@@ -182,6 +209,11 @@ export const routes: Routes = [
     component: AdminFieldVerificationComponent,
     canActivate: [authGuard, roleGuard(['admin', 'employee'])]
   },
+  {
+    path: 'admin/reviews',
+    component: AdminReviews,
+    canActivate: [authGuard, roleGuard(['admin'])]
+  },
 
   {
   path: 'account-verification',
@@ -208,6 +240,21 @@ export const routes: Routes = [
   component: Reviews,
   canActivate: [authGuard]
 },
+{
+  path: 'notifications',
+  component: Notifications,
+  canActivate: [authGuard]
+},
+{
+  path: 'marketplace-orders/:id/payment',
+  component: MarketplaceOrderPayment,
+  canActivate: [authGuard, roleGuard(['customer'])]
+},
+{
+  path: 'marketplace-orders',
+  component: MarketplaceOrders,
+  canActivate: [authGuard, roleGuard(['customer'])]
+},
 
 {
   path: 'create-booking/:serviceListingId',
@@ -223,6 +270,13 @@ export const routes: Routes = [
   path: 'payment/cancel',
   component: PaymentCancel,
   canActivate: [authGuard, roleGuard(['customer'])]
+},
+
+
+{
+  path: 'employee/field-visits',
+  component: EmployeeFieldVisits,
+  canActivate: [authGuard, roleGuard(['employee', 'admin'])]
 },
 
   {

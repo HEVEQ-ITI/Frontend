@@ -38,6 +38,15 @@ export class Auth {
       )
   }
 
+
+  confirmEmail(request: { userId: string; token: string }) {
+    return this.http.post<AuthResponse>(`${API_BASE_URL}/Auth/confirm-email`, request)
+  }
+
+  resendConfirmationEmail(email: string) {
+    return this.http.post<AuthResponse>(`${API_BASE_URL}/Auth/resend-confirmation-email`, { email })
+  }
+
   refreshToken(refreshToken: string) {
     return this.http.post<AuthResponse>(`${API_BASE_URL}/Auth/refresh-token`, {
       refreshToken

@@ -3,14 +3,15 @@ import { Component, OnInit } from '@angular/core'
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormsModule, NgForm } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { HttpErrorResponse } from '@angular/common/http'
-import { finalize, forkJoin } from 'rxjs'
+import { finalize, forkJoin, of, switchMap } from 'rxjs'
 
 import { Category } from '../../../core/models/category.models'
-import { CreateMarketplaceListingRequest, MarketplaceCondition, MarketplaceTransactionMethod } from '../../../core/models/marketplace.models'
+import { CreateMarketplaceListingRequest, MarketplaceCondition, MarketplaceListingPhotoDto, MarketplaceTransactionMethod } from '../../../core/models/marketplace.models'
 import { CategoriesService } from '../../../core/services/categories'
 import { MarketplaceService } from '../../../core/services/marketplace'
 import { ServiceListings } from '../../../core/services/service-listings'
 import { OperatorsApi } from '../../../core/services/operators-api'
+import { MediaUploadService } from '../../../core/services/mediaUploadService'
 import { Toast } from '../../../core/services/toast'
 import { extractErrorMessage } from '../../../core/models/api-error.models'
 import { Operator } from '../../../core/models/operator.models'
@@ -49,6 +50,9 @@ export class CreateListing implements OnInit {
   form: FormGroup
   isSubmitting = false
   submitMessage = ''
+  marketplaceEditId: string | null = null
+  marketplaceExistingPhotos: MarketplaceListingPhotoDto[] = []
+  selectedMarketplaceFiles: File[] = []
   submitError = ''
 
   // Service flow fields
@@ -60,6 +64,7 @@ export class CreateListing implements OnInit {
   isAddingPhoto = false
   isLinkingOperator = false
   isAddingAvailability = false
+  isSubmittingForReview = false
 
   basicInfoModel: ServiceListingFormPayload = { ...EMPTY_BASIC_INFO }
   availabilityModel = {
@@ -69,7 +74,7 @@ export class CreateListing implements OnInit {
   }
 
   availableOperators: Operator[] = []
-  newPhotoUrl = ''
+  selectedServicePhotoFile: File | null = null
   newPhotoOrder = 1
   selectedOperatorId = ''
   manageData: ManageServiceListing | null = null
@@ -92,6 +97,7 @@ export class CreateListing implements OnInit {
     private categoriesService: CategoriesService,
     private marketplaceService: MarketplaceService,
     private operatorsApi: OperatorsApi,
+    private mediaUploadService: MediaUploadService,
     private toast: Toast
   ) {
     this.form = this.fb.group({
@@ -110,8 +116,19 @@ export class CreateListing implements OnInit {
   }
 
   ngOnInit(): void {
+    const marketplaceId = this.route.snapshot.queryParamMap.get('marketplaceId')
+    const typeParam = this.route.snapshot.queryParamMap.get('type')
     const idParam = this.route.snapshot.paramMap.get('id')
-    if (idParam) {
+
+    if (marketplaceId || typeParam === 'marketplace') {
+      this.listingType = 'marketplace'
+      this.loadMarketplaceCategories()
+
+      if (marketplaceId) {
+        this.marketplaceEditId = marketplaceId
+        this.loadMarketplaceEditData(marketplaceId)
+      }
+    } else if (idParam) {
       this.listingId = idParam
       this.isEditMode = true
       this.listingType = 'service'
@@ -164,6 +181,37 @@ export class CreateListing implements OnInit {
     })
   }
 
+
+  private loadMarketplaceEditData(id: string): void {
+    this.isSubmitting = true
+    this.submitError = ''
+
+    this.marketplaceService
+      .getById(id)
+      .pipe(finalize(() => (this.isSubmitting = false)))
+      .subscribe({
+        next: listing => {
+          this.form.patchValue({
+            title: listing.title,
+            categoryId: listing.categoryId ?? this.form.value.categoryId,
+            condition: listing.condition || 'New',
+            yearOfManufacture: listing.yearOfManufacture ?? new Date().getFullYear(),
+            description: listing.description,
+            specifications: listing.specifications || '',
+            price: listing.price,
+            isNegotiable: listing.isNegotiable ?? false,
+            transactionMethod: listing.transactionMethod || 'Pickup',
+            governorate: listing.governorate || '',
+            district: listing.district || ''
+          })
+          this.marketplaceExistingPhotos = [...(listing.photos ?? [])].sort((a, b) => a.displayOrder - b.displayOrder)
+        },
+        error: () => {
+          this.submitError = 'تعذر تحميل بيانات إعلان السوق للتعديل.'
+        }
+      })
+  }
+
   // ---------- Service Wizard Methods ----------
 
   private loadInitialEditData(id: string): void {
@@ -189,6 +237,7 @@ export class CreateListing implements OnInit {
           minimumBookingHours: detail.minimumBookingHours
         }
         this.manageData = manage
+        this.newPhotoOrder = (manage.photos?.length ?? 0) + 1
         this.isInitialLoading = false
       },
       error: (err: HttpErrorResponse) => {
@@ -202,7 +251,10 @@ export class CreateListing implements OnInit {
     if (!this.listingId) return
 
     this.serviceListings.getManage(this.listingId).subscribe({
-      next: data => (this.manageData = data),
+      next: data => {
+        this.manageData = data
+        this.newPhotoOrder = this.getNextServicePhotoOrder()
+      },
       error: (err: HttpErrorResponse) => this.toast.error(extractErrorMessage(err))
     })
   }
@@ -224,8 +276,9 @@ export class CreateListing implements OnInit {
       this.serviceListings.update(this.listingId, this.basicInfoModel).subscribe({
         next: () => {
           this.isSavingStep1 = false
-          this.toast.success('تم تحديث المعلومات الأساسية')
+          this.toast.success('تم حفظ التعديلات. أكمل الخطوات ثم اضغط إرسال للمراجعة')
           this.refreshManageData()
+          this.currentStep = 2
         },
         error: (err: HttpErrorResponse) => {
           this.isSavingStep1 = false
@@ -250,25 +303,47 @@ export class CreateListing implements OnInit {
   }
 
   addPhoto(): void {
-    if (!this.listingId || !this.newPhotoUrl.trim()) return
+    if (!this.listingId || !this.selectedServicePhotoFile) return
 
     this.isAddingPhoto = true
 
-    this.serviceListings
-      .addPhoto(this.listingId, { photoUrl: this.newPhotoUrl.trim(), displayOrder: this.newPhotoOrder })
+    const displayOrder = this.getNextServicePhotoOrder()
+
+    this.mediaUploadService
+      .uploadImage(this.selectedServicePhotoFile, 'service-listings', this.listingId)
+      .pipe(
+        switchMap(upload => this.serviceListings.addPhoto(this.listingId!, { photoUrl: upload.url, displayOrder })),
+        finalize(() => (this.isAddingPhoto = false))
+      )
       .subscribe({
         next: () => {
-          this.isAddingPhoto = false
-          this.newPhotoUrl = ''
-          this.newPhotoOrder = (this.manageData?.photos.length ?? 0) + 1
-          this.toast.success('تمت إضافة الصورة')
+          this.selectedServicePhotoFile = null
+          this.newPhotoOrder = displayOrder + 1
+          this.toast.success('تم رفع الصورة وإضافتها')
           this.refreshManageData()
         },
         error: (err: HttpErrorResponse) => {
-          this.isAddingPhoto = false
           this.toast.error(extractErrorMessage(err))
         }
       })
+  }
+
+  onServicePhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement
+    const file = input.files?.[0] ?? null
+
+    if (!file) {
+      this.selectedServicePhotoFile = null
+      return
+    }
+
+    if (!this.validateImageFile(file)) {
+      this.selectedServicePhotoFile = null
+      input.value = ''
+      return
+    }
+
+    this.selectedServicePhotoFile = file
   }
 
   deletePhoto(photoId: string): void {
@@ -345,15 +420,35 @@ export class CreateListing implements OnInit {
   }
 
   submitForReview(): void {
-    if (!this.listingId) return
+    if (!this.listingId || this.isSubmittingForReview) return
 
-    this.serviceListings.submitForReview(this.listingId).subscribe({
-      next: result => {
-        this.toast.success(result.message)
-        this.router.navigate(['/equipment'])
-      },
-      error: (err: HttpErrorResponse) => this.toast.error(extractErrorMessage(err))
-    })
+    this.isSubmittingForReview = true
+
+    this.serviceListings.getManage(this.listingId)
+      .pipe(
+        switchMap(manage => {
+          this.manageData = manage
+
+          if (!manage.canSubmitForReview) {
+            const missing = manage.missingRequirements?.length
+              ? manage.missingRequirements.join('، ')
+              : 'استكمل الصور والمشغلين والتوفر وبيانات المزود أولاً'
+            throw new Error(`لا يمكن الإرسال للمراجعة قبل استكمال: ${missing}`)
+          }
+
+          return this.serviceListings.submitForReview(this.listingId!)
+        }),
+        finalize(() => (this.isSubmittingForReview = false))
+      )
+      .subscribe({
+        next: result => {
+          this.toast.success(result.message || 'تم إرسال القائمة للمراجعة وسيتم فحصها بالذكاء الاصطناعي مرة أخرى')
+          this.router.navigate(['/equipment'])
+        },
+        error: (err: HttpErrorResponse | Error) => {
+          this.toast.error(err instanceof Error ? err.message : extractErrorMessage(err))
+        }
+      })
   }
 
   // ---------- Marketplace Submit Method ----------
@@ -362,6 +457,17 @@ export class CreateListing implements OnInit {
     if (this.form.invalid) {
       this.form.markAllAsTouched()
       this.submitError = 'يرجى تعبئة جميع الحقول المطلوبة.'
+      return
+    }
+
+    const totalPhotosAfterSave = this.marketplaceExistingPhotos.length + this.selectedMarketplaceFiles.length
+    if (totalPhotosAfterSave < 3) {
+      this.submitError = 'يجب رفع 3 صور على الأقل قبل نشر إعلان البيع حتى لا يظل كمسودة.'
+      return
+    }
+
+    if (totalPhotosAfterSave > 12) {
+      this.submitError = 'الحد الأقصى لصور إعلان البيع هو 12 صورة.'
       return
     }
 
@@ -383,28 +489,107 @@ export class CreateListing implements OnInit {
     this.submitMessage = ''
     this.submitError = ''
 
-    this.marketplaceService
-      .createListing(payload)
-      .pipe(finalize(() => (this.isSubmitting = false)))
+    const saveRequest = this.marketplaceEditId
+      ? this.marketplaceService.updateListing(this.marketplaceEditId, payload).pipe(switchMap(() => of({ id: this.marketplaceEditId!, status: 'PendingReview', statusAr: 'قيد المراجعة', nextStep: '' })))
+      : this.marketplaceService.createListing(payload)
+
+    saveRequest
+      .pipe(
+        switchMap(response => this.uploadAndAttachMarketplacePhotos(response.id).pipe(switchMap(() => of(response)))),
+        finalize(() => (this.isSubmitting = false))
+      )
       .subscribe({
-        next: (response) => {
-          this.submitMessage = `تم حفظ العرض بنجاح. الحالة: ${response.statusAr || response.status}. الخطوة التالية: ${response.nextStep || 'إضافة صور'}`
-          this.form.reset({
-            condition: 'New',
-            yearOfManufacture: new Date().getFullYear(),
-            isNegotiable: false,
-            transactionMethod: 'Pickup',
-          })
-
-          if (this.categories.length > 0) {
-            this.form.patchValue({ categoryId: this.categories[0].id })
-          }
-
-          setTimeout(() => this.router.navigate(['/provider-dashboard']), 1200)
+        next: response => {
+          this.submitMessage = `تم حفظ العرض بنجاح. الحالة: ${response.statusAr || response.status}. تم رفع الصور وربطها بالإعلان.`
+          this.selectedMarketplaceFiles = []
+          setTimeout(() => this.router.navigate(['/equipment']), 1000)
         },
-        error: () => {
-          this.submitError = 'تعذر نشر العرض. يرجى التحقق من البيانات والمحاولة مرة أخرى.'
+        error: (err: HttpErrorResponse) => {
+          this.submitError = extractErrorMessage(err) || 'تعذر حفظ العرض. يرجى التحقق من البيانات والمحاولة مرة أخرى.'
         },
       })
   }
+
+  onMarketplaceFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement
+    const files = Array.from(input.files ?? [])
+
+    if (!files.length) {
+      this.selectedMarketplaceFiles = []
+      return
+    }
+
+    const invalid = files.find(file => !this.validateImageFile(file, false))
+    if (invalid) {
+      this.submitError = 'مسموح بصور JPG أو PNG أو WEBP فقط وبحد أقصى 10 ميجابايت للصورة'
+      this.selectedMarketplaceFiles = []
+      input.value = ''
+      return
+    }
+
+    const nextTotal = this.marketplaceExistingPhotos.length + files.length
+    if (nextTotal > 12) {
+      this.submitError = 'الحد الأقصى لصور إعلان البيع هو 12 صورة.'
+      this.selectedMarketplaceFiles = []
+      input.value = ''
+      return
+    }
+
+    this.submitError = ''
+    this.selectedMarketplaceFiles = files
+  }
+
+  removeSelectedMarketplaceFile(index: number): void {
+    this.selectedMarketplaceFiles = this.selectedMarketplaceFiles.filter((_, i) => i !== index)
+  }
+
+  deleteMarketplacePhoto(photoId: string): void {
+    if (!this.marketplaceEditId) return
+
+    this.marketplaceService.deletePhoto(this.marketplaceEditId, photoId).subscribe({
+      next: () => {
+        this.toast.success('تم حذف الصورة')
+        this.marketplaceExistingPhotos = this.marketplaceExistingPhotos.filter(photo => photo.id !== photoId)
+      },
+      error: (err: HttpErrorResponse) => this.toast.error(extractErrorMessage(err))
+    })
+  }
+
+  private getNextServicePhotoOrder(): number {
+    const currentMax = Math.max(0, ...(this.manageData?.photos ?? []).map(photo => Number(photo.displayOrder || 0)))
+    return currentMax + 1
+  }
+
+  private uploadAndAttachMarketplacePhotos(listingId: string) {
+    if (!this.selectedMarketplaceFiles.length) {
+      return of([])
+    }
+
+    const startOrder = Math.max(0, ...this.marketplaceExistingPhotos.map(photo => Number(photo.displayOrder || 0))) + 1
+    return forkJoin(
+      this.selectedMarketplaceFiles.map((file, index) =>
+        this.mediaUploadService
+          .uploadImage(file, 'marketplace-listings', listingId)
+          .pipe(
+            switchMap(upload => this.marketplaceService.addPhoto(listingId, {
+              photoUrl: upload.url,
+              displayOrder: startOrder + index
+            }))
+          )
+      )
+    )
+  }
+
+  private validateImageFile(file: File, showToast = true): boolean {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    const maxSize = 10 * 1024 * 1024
+    const isValid = allowedTypes.includes(file.type) && file.size <= maxSize
+
+    if (!isValid && showToast) {
+      this.toast.error('مسموح بصور JPG أو PNG أو WEBP فقط وبحد أقصى 10 ميجابايت للصورة')
+    }
+
+    return isValid
+  }
+
 }

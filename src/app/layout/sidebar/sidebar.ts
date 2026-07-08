@@ -53,6 +53,24 @@ export class Sidebar implements OnInit, OnDestroy {
     return this.tokenStorage.getRole()
   }
 
+
+  get isFieldEmployee(): boolean {
+    if (this.role !== 'employee') {
+      return false
+    }
+
+    const currentUser: any = this.tokenStorage.getCurrentUser()
+    const department = String(currentUser?.employeeDepartment || currentUser?.department || '').toLowerCase()
+    return currentUser?.isAvailableForDispatch === true ||
+      department.includes('field') ||
+      department.includes('verification') ||
+      department.includes('ميد')
+  }
+
+  get isSupportEmployee(): boolean {
+    return this.role === 'employee' && !this.isFieldEmployee
+  }
+
   get showSidebar(): boolean {
     const url = this.currentUrl
 
@@ -61,15 +79,15 @@ export class Sidebar implements OnInit, OnDestroy {
     }
 
     if (this.role === 'customer') {
-      return ['/dashboard', '/bookings', '/wallet', '/messages', '/profile', '/settings'].some(x => url.startsWith(x))
+      return ['/dashboard', '/bookings', '/marketplace-orders', '/support-tickets', '/notifications', '/wallet', '/messages', '/profile', '/settings'].some(x => url.startsWith(x))
     }
 
     if (this.role === 'provider') {
-      return ['/provider-dashboard', '/booking-requests', '/active-jobs', '/equipment', '/earnings', '/create-listing'].some(x => url.startsWith(x))
+      return ['/provider-dashboard', '/provider-bookings', '/booking-requests', '/active-jobs', '/equipment', '/marketplace-sales', '/earnings', '/operators', '/create-listing', '/messages', '/profile'].some(x => url.startsWith(x))
     }
 
     if (this.role === 'admin' || this.role === 'employee') {
-      return url.startsWith('/admin')
+      return url.startsWith('/admin') || url.startsWith('/employee/field-visits')
     }
 
     return false

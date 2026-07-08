@@ -11,6 +11,8 @@ export interface DashboardSummary {
   frozenEscrowRecords: number;
   pendingFieldVerifications: number;
   aiHighRiskItems: number;
+  netPlatformEarnings?: number;
+  netEscrowAmount?: number;
 }
 
 export interface PendingAction {
@@ -96,7 +98,10 @@ export interface AdminDocument {
   extractedText?: string;
   confidenceScore?: number;
   keyFieldsPresent?: boolean;
+  failureReason?: string | null;
+  adminNote?: string | null;
 }
+
 
 export interface AdminTicketMessage {
   id: string;
@@ -110,6 +115,7 @@ export interface AdminTicketMessage {
 export interface AdminTicket {
   id: string;
   title: string;
+  ticketNumber?: string;
   userId: string;
   userName: string;
   status: 'Open' | 'InProgress' | 'Resolved' | 'Closed';
@@ -119,9 +125,68 @@ export interface AdminTicket {
   updatedAt: string;
 }
 
+export interface EscrowSummary {
+  id: string;
+  grossAmount: number;
+  platformCommission: number;
+  providerPayout: number;
+  status: string;
+}
+
+export interface TicketAttachment {
+  id: string;
+  fileUrl: string;
+  fileName: string;
+  fileType: string;
+  createdAt: string;
+}
+
+export interface ProviderCompletionEvidence {
+  id: string;
+  providerNotes?: string;
+  status: string;
+  submittedAt?: string;
+  photos: { id: string; photoUrl: string; caption?: string }[];
+}
+
+export interface FieldVisitPhoto {
+  id: string;
+  photoUrl: string;
+  caption?: string;
+}
+
+export interface FieldVisit {
+  id: string;
+  dispatchedEmployeeId: string;
+  dispatchedEmployeeName: string;
+  dispatchInstructions?: string;
+  visitStatus: string;
+  visitStatusAr: string;
+  employeeNotes?: string;
+  fieldVerificationOutcome?: string;
+  adminDecision: string;
+  adminDecisionNote?: string;
+  dispatchedAt: string;
+  visitedAt?: string;
+  photos: FieldVisitPhoto[];
+}
+
 export interface AdminTicketDetails extends AdminTicket {
   description: string;
   messages: AdminTicketMessage[];
+  assignedToUserId?: string;
+  assignedToUserName?: string;
+  linkedBooking?: { id: string; bookingReference: string };
+  linkedMarketplaceOrder?: { id: string; orderNumber: string };
+  escrowSummary?: EscrowSummary;
+  availableDisputeDecisions?: string[];
+  customerAttachments?: TicketAttachment[];
+  providerCompletionEvidence?: ProviderCompletionEvidence;
+  fieldVisits?: FieldVisit[];
+  aiSummary?: string | null;
+  aiIdentifiedIssue?: string | null;
+  aiClaimedImpact?: string | null;
+  aiEscalationPriority?: number | null;
 }
 
 export interface AdminDispute {

@@ -58,13 +58,16 @@ export class AdminDisputes implements OnInit {
         // Map disputes to structure expected by component template
         items = items.map(d => ({
           ...d,
-          currency: 'SAR',
+          currency: 'ج.م',
           reason: (d as any).type === 'Booking' ? 'نزاع على إتمام الحجز' : 'نزاع على طلب المتجر'
         }));
 
         this.disputes = items;
         this.totalCount = res.totalCount || 0;
         this.isLoading = false;
+        if (this.disputes.length > 0 && !this.selectedDispute) {
+          this.viewDispute(this.disputes[0].id);
+        }
         this.cdr.detectChanges();
       },
       error: () => {
@@ -83,6 +86,7 @@ export class AdminDisputes implements OnInit {
 
   onPageChange(newPage: number) {
     this.page = newPage;
+    this.selectedDispute = null;
     this.loadDisputes();
   }
 
@@ -100,7 +104,7 @@ export class AdminDisputes implements OnInit {
       providerName: dispute.providerName,
       status: dispute.status,
       amount: dispute.amount,
-      currency: dispute.currency || 'SAR',
+      currency: dispute.currency || 'ج.م',
       createdAt: dispute.createdAt,
       reason: dispute.reason || ((dispute as any).type === 'Booking' ? 'نزاع على إتمام الحجز' : 'نزاع على طلب المتجر'),
       description: (dispute as any).type === 'Booking' 

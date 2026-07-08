@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { finalize, Subscription } from 'rxjs'
+import { finalize, forkJoin, of, Subscription, switchMap } from 'rxjs'
 import { getErrorMessage } from '../../../core/helpers/errorMessageHelper'
 import {
   CreateTicketRequest,
@@ -11,6 +11,7 @@ import {
 } from '../../../core/models/ticketModels'
 import { NotificationsService } from '../../../core/services/notificationsService'
 import { TicketsService } from '../../../core/services/ticketsService'
+import { MediaUploadService } from '../../../core/services/mediaUploadService'
 
 @Component({
   selector: 'app-support-tickets',
@@ -41,6 +42,7 @@ export class SupportTickets implements OnInit, OnDestroy {
   }
 
   replyBody = ''
+  selectedTicketFiles: File[] = []
 
   categoryOptions = [
     {
@@ -82,6 +84,7 @@ export class SupportTickets implements OnInit, OnDestroy {
   constructor(
     private ticketsService: TicketsService,
     private notificationsService: NotificationsService,
+    private mediaUploadService: MediaUploadService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -147,15 +150,24 @@ export class SupportTickets implements OnInit, OnDestroy {
     this.isCreating = true
     this.cdr.detectChanges()
 
-    this.ticketsService
-      .createTicket({
-        subject: this.newTicketForm.subject,
-        category: Number(this.newTicketForm.category),
-        message: this.newTicketForm.message,
-        bookingId: this.emptyToNull(this.newTicketForm.bookingId),
-        marketplaceOrderId: this.emptyToNull(this.newTicketForm.marketplaceOrderId)
-      })
+    const uploadRequest = this.selectedTicketFiles.length > 0
+      ? forkJoin(this.selectedTicketFiles.map(file => this.mediaUploadService.uploadImage(file, 'ticket-attachments')))
+      : of([])
+
+    uploadRequest
       .pipe(
+        switchMap(uploadResults => this.ticketsService.createTicket({
+          subject: this.newTicketForm.subject,
+          category: Number(this.newTicketForm.category),
+          message: this.newTicketForm.message,
+          bookingId: this.emptyToNull(this.newTicketForm.bookingId),
+          marketplaceOrderId: this.emptyToNull(this.newTicketForm.marketplaceOrderId),
+          attachments: uploadResults.map(result => ({
+            fileUrl: result.url,
+            fileName: result.publicId || result.url.split('/').pop() || 'attachment',
+            fileType: 0
+          }))
+        })),
         finalize(() => {
           this.isCreating = false
           this.cdr.detectChanges()
@@ -165,6 +177,7 @@ export class SupportTickets implements OnInit, OnDestroy {
         next: response => {
           this.successMessage = response.message || 'تم إنشاء تذكرة الدعم بنجاح'
           this.resetNewTicketForm()
+          this.selectedTicketFiles = []
           this.loadTickets()
 
           if (response.id) {
@@ -255,6 +268,33 @@ export class SupportTickets implements OnInit, OnDestroy {
       })
   }
 
+
+  onTicketFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement
+    const files = Array.from(input.files ?? [])
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    const maxSize = 10 * 1024 * 1024
+
+    if (files.length > 5) {
+      this.errorMessage = 'الحد الأقصى 5 صور للتذكرة الواحدة'
+      this.selectedTicketFiles = []
+      this.cdr.detectChanges()
+      return
+    }
+
+    const invalid = files.find(file => !allowedTypes.includes(file.type) || file.size > maxSize)
+    if (invalid) {
+      this.errorMessage = 'مسموح بصور JPG أو PNG أو WEBP فقط وبحد أقصى 10 ميجابايت للصورة'
+      this.selectedTicketFiles = []
+      this.cdr.detectChanges()
+      return
+    }
+
+    this.selectedTicketFiles = files
+    this.errorMessage = ''
+    this.cdr.detectChanges()
+  }
+
   resetNewTicketForm(): void {
     this.newTicketForm = {
       subject: '',
@@ -263,6 +303,7 @@ export class SupportTickets implements OnInit, OnDestroy {
       bookingId: null,
       marketplaceOrderId: null
     }
+    this.selectedTicketFiles = []
   }
 
   getStatusText(status: string, statusAr?: string | null): string {

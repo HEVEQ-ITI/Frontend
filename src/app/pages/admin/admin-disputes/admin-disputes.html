@@ -100,14 +100,7 @@
                   <option value="">-- اختر الحل --</option>
                   <option value="RefundCustomer">استرداد كامل للعميل</option>
                   <option value="ReleaseToProvider">صرف كامل للمزود</option>
-                  <option value="PartialRefund">استرداد جزئي (تقسيم المبلغ)</option>
                 </select>
-              </div>
-
-              <div class="form-group" *ngIf="resolutionType === 'PartialRefund'">
-                <label>مبلغ الاسترداد للعميل (أقل من {{ selectedDispute.amount }})</label>
-                <input type="number" class="form-control full-width" [(ngModel)]="refundAmount" placeholder="المبلغ المسترد">
-                <small class="hint-text">الباقي ({{ selectedDispute.amount - (refundAmount || 0) }}) سيتم صرفه للمزود.</small>
               </div>
 
               <div class="form-group">

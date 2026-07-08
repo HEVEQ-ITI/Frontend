@@ -51,9 +51,18 @@ export interface MarketplaceListingDetails {
   title: string
   description: string
   price: number
+  categoryId: number
   condition: string
   conditionAr: string
+  yearOfManufacture: number | null
   specifications: string | null
+  isNegotiable: boolean
+  transactionMethod: MarketplaceTransactionMethod
+  governorate: string | null
+  district: string | null
+  status?: string
+  statusAr?: string
+  videoUrl?: string | null
   photos: MarketplaceListingPhotoDto[]
   seller: ListingSellerDto
   canBuyNow: boolean

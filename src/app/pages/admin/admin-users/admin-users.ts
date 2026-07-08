@@ -1,7 +1,8 @@
-import { Component, OnInit, ChangeDetectionStrategy, DestroyRef, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, DestroyRef, inject, ChangeDetectorRef, NgZone } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { AdminUser, AdminUsersService, UpdateUserStatusRequest } from '../../../core/services/adminUsersService';
+import { AdminUser, AdminUsersService, UpdateUserStatusRequest, CreateStaffRequest } from '../../../core/services/adminUsersService';
+import { getErrorMessage } from '../../../core/helpers/errorMessageHelper';
 import { Loading } from '../../../shared/components/loading/loading';
 import { EmptyState } from '../../../shared/components/empty-state/empty-state';
 import { ActionModal } from '../../../shared/components/action-modal/action-modal';
@@ -23,9 +24,14 @@ export class AdminUsers implements OnInit {
   
   filterRole: string = '';
   filterStatus: string = ''; // '' | 'true' | 'false'
+  searchTerm = ''
 
   isLoading = true;
   error = false;
+  isCreateModalOpen = false;
+  isCreatingStaff = false;
+  showNewPassword = false;
+  createForm: CreateStaffRequest = this.getEmptyCreateForm();
 
   // Modal State
   isModalOpen = false;
@@ -41,7 +47,8 @@ export class AdminUsers implements OnInit {
   constructor(
     private usersService: AdminUsersService,
     private toastService: ToastService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {}
 
   ngOnInit() {
@@ -51,25 +58,30 @@ export class AdminUsers implements OnInit {
   loadUsers() {
     this.isLoading = true;
     this.error = false;
+    this.cdr.detectChanges();
     
     let isActiveParam: boolean | undefined = undefined;
     if (this.filterStatus === 'true') isActiveParam = true;
     if (this.filterStatus === 'false') isActiveParam = false;
 
-    this.usersService.getUsers(this.page, this.pageSize, this.filterRole || undefined, isActiveParam)
+    this.usersService.getUsers(this.page, this.pageSize, this.filterRole || undefined, isActiveParam, this.searchTerm)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
       next: (res) => {
-        this.users = res.items || [];
-        this.totalCount = res.totalCount || 0;
-        this.isLoading = false;
-        this.cdr.detectChanges();
+        this.ngZone.run(() => {
+          this.users = res.items || [];
+          this.totalCount = res.totalCount || 0;
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        });
       },
       error: () => {
-        this.error = true;
-        this.isLoading = false;
-        this.toastService.error('حدث خطأ أثناء جلب المستخدمين');
-        this.cdr.detectChanges();
+        this.ngZone.run(() => {
+          this.error = true;
+          this.isLoading = false;
+          this.toastService.error('حدث خطأ أثناء جلب المستخدمين');
+          this.cdr.detectChanges();
+        });
       }
     });
   }
@@ -77,6 +89,67 @@ export class AdminUsers implements OnInit {
   onFilterChange() {
     this.page = 1;
     this.loadUsers();
+  }
+
+  onSearchChange() {
+    this.page = 1;
+    this.loadUsers();
+  }
+
+  openCreateModal(role: 'Admin' | 'Employee' = 'Employee') {
+    this.createForm = this.getEmptyCreateForm(role);
+    this.isCreateModalOpen = true;
+  }
+
+  closeCreateModal() {
+    if (this.isCreatingStaff) return;
+    this.isCreateModalOpen = false;
+    this.showNewPassword = false;
+  }
+
+  getEmptyCreateForm(role: 'Admin' | 'Employee' = 'Employee'): CreateStaffRequest {
+    return {
+      firstName: '',
+      lastName: '',
+      userName: '',
+      email: '',
+      password: '',
+      phoneNumber: '',
+      role,
+      department: role === 'Employee' ? 'Support' : undefined,
+      assignedGovernorate: '',
+      isAvailableForDispatch: false
+    };
+  }
+
+  submitCreateStaff() {
+    if (!this.createForm.firstName || !this.createForm.lastName || !this.createForm.userName || !this.createForm.email || !this.createForm.password) {
+      this.toastService.error('من فضلك املأ بيانات الحساب المطلوبة');
+      return;
+    }
+
+    if (this.createForm.role === 'Employee' && !this.createForm.department) {
+      this.toastService.error('اختر قسم الموظف');
+      return;
+    }
+
+    this.isCreatingStaff = true;
+    this.usersService.createStaff(this.createForm)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.isCreatingStaff = false;
+          this.isCreateModalOpen = false;
+          this.toastService.success('تم إنشاء الحساب بنجاح');
+          this.loadUsers();
+          this.cdr.detectChanges();
+        },
+        error: err => {
+          this.isCreatingStaff = false;
+          this.toastService.error(getErrorMessage(err, 'فشل إنشاء الحساب'));
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   onPageChange(newPage: number) {

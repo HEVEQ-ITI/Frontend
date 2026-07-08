@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, DestroyRef, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject, ChangeDetectorRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { AdminListingReviewService } from '../../../core/services/adminListingReviewService';
@@ -7,6 +7,8 @@ import { Loading } from '../../../shared/components/loading/loading';
 import { EmptyState } from '../../../shared/components/empty-state/empty-state';
 import { ActionModal } from '../../../shared/components/action-modal/action-modal';
 import { ToastService } from '../../../shared/components/toast/toast.service';
+import { ActivatedRoute } from '@angular/router';
+import { extractErrorMessage } from '../../../core/models/api-error.models';
 
 @Component({
   selector: 'app-admin-listing-review',
@@ -19,6 +21,10 @@ export class AdminListingReview implements OnInit {
   
   pendingListings: PendingListing[] = [];
   isLoading = true;
+  isLoadingMore = false;
+  page = 1;
+  pageSize = 10;
+  totalCount = 0;
 
   // Details View
   selectedDetails: ListingReviewDetails | null = null;
@@ -38,11 +44,21 @@ export class AdminListingReview implements OnInit {
   constructor(
     private listingService: AdminListingReviewService,
     private toastService: ToastService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit() {
-    this.loadListings();
+    const type = this.route.snapshot.queryParamMap.get('type');
+    const id = this.route.snapshot.queryParamMap.get('id');
+
+    if (type === 'marketplace') {
+      this.activeTab = 'marketplace';
+    } else {
+      this.activeTab = 'services';
+    }
+
+    this.loadListings(id || undefined);
   }
 
   switchTab(tab: 'services' | 'marketplace') {
@@ -52,18 +68,25 @@ export class AdminListingReview implements OnInit {
     this.loadListings();
   }
 
-  loadListings() {
+  loadListings(openId?: string) {
     this.isLoading = true;
     this.pendingListings = [];
+    this.page = 1;
     
     const obs$ = this.activeTab === 'services' 
-      ? this.listingService.getPendingServiceListings(1, 50)
-      : this.listingService.getPendingMarketplaceListings(1, 50);
+      ? this.listingService.getPendingServiceListings(this.page, this.pageSize)
+      : this.listingService.getPendingMarketplaceListings(this.page, this.pageSize);
 
     obs$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.pendingListings = res.items || [];
+        this.totalCount = res.totalCount || 0;
         this.isLoading = false;
+        if (openId) {
+          this.viewDetails(openId);
+        } else if (this.pendingListings.length > 0) {
+          this.viewDetails(this.pendingListings[0].id);
+        }
         this.cdr.detectChanges();
       },
       error: () => {
@@ -72,6 +95,45 @@ export class AdminListingReview implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  loadMore() {
+    if (this.isLoading || this.isLoadingMore || this.pendingListings.length >= this.totalCount) return;
+    this.isLoadingMore = true;
+    this.page++;
+    
+    const obs$ = this.activeTab === 'services' 
+      ? this.listingService.getPendingServiceListings(this.page, this.pageSize)
+      : this.listingService.getPendingMarketplaceListings(this.page, this.pageSize);
+
+    obs$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res) => {
+        const newItems = res.items || [];
+        this.pendingListings = [...this.pendingListings, ...newItems];
+        this.totalCount = res.totalCount || 0;
+        this.isLoadingMore = false;
+        
+        // Auto-select first item if details are empty
+        if (!this.selectedDetails && !this.isDetailsLoading && this.pendingListings.length > 0) {
+          this.viewDetails(this.pendingListings[0].id);
+        }
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.isLoadingMore = false;
+        this.toastService.error('فشل في تحميل المزيد من الإدراجات');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  onScroll(event: Event) {
+    const element = event.target as HTMLElement;
+    const threshold = 100; // Trigger load when within 100px of bottom
+    const atBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + threshold;
+    if (atBottom) {
+      this.loadMore();
+    }
   }
 
   viewDetails(id: string) {
@@ -120,6 +182,16 @@ export class AdminListingReview implements OnInit {
     this.isModalOpen = true;
   }
 
+  formatAiText(value: string | null | undefined): string[] {
+    if (!value) return []
+
+    return value
+      .replace(/[•]+/g, '\n• ')
+      .split(/\r?\n|(?=\d+[\)\-.])|(?=•)/)
+      .map(part => part.trim())
+      .filter(Boolean)
+  }
+
   handleModalConfirm(note?: string) {
     if (!this.selectedDetails || !this.pendingAction) return;
 
@@ -145,7 +217,7 @@ export class AdminListingReview implements OnInit {
       },
       error: (err) => {
         console.error('Action failed', err);
-        this.toastService.error('حدث خطأ أثناء تنفيذ الإجراء');
+        this.toastService.error(extractErrorMessage(err) || 'حدث خطأ أثناء تنفيذ الإجراء');
         this.cdr.detectChanges();
       }
     });
